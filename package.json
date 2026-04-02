@@ -1,0 +1,21 @@
+{
+  "name": "ai-agent-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AI Agent Monorepo with TurboRepo, Express backend, and React frontend",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

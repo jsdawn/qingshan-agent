@@ -1,0 +1,31 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "version": "2",
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "inputs": ["src/**", "package.json", "tsconfig.json"]
+    },
+    "build": {
+      "outputs": ["dist/**", "build/**"],
+      "cache": true,
+      "inputs": ["src/**", "package.json", "tsconfig.json"]
+    },
+    "start": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "cache": true
+    },
+    "clean": {
+      "cache": false
+    }
+  },
+  "dev": [
+    "server#dev",
+    "web#dev"
+  ]
+}
