@@ -52,12 +52,12 @@
 
 #### 关键文件
 
-| 文件 | 作用 |
-|------|------|
-| `src/App.tsx` | 主应用组件，聊天 UI 交互 |
-| `src/App.css` | 样式表 |
-| `src/main.tsx` | React 入口 |
-| `vite.config.ts` | Vite 构建配置 |
+| 文件             | 作用                     |
+| ---------------- | ------------------------ |
+| `src/App.tsx`    | 主应用组件，聊天 UI 交互 |
+| `src/App.css`    | 样式表                   |
+| `src/main.tsx`   | React 入口               |
+| `vite.config.ts` | Vite 构建配置            |
 
 #### 核心逻辑
 
@@ -70,7 +70,7 @@
 
 const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
   api: `${apiUrl}/api/chat`,
-})
+});
 ```
 
 #### 功能模块
@@ -85,42 +85,44 @@ const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat(
 
 #### 关键文件
 
-| 文件 | 作用 |
-|------|------|
+| 文件           | 作用                         |
+| -------------- | ---------------------------- |
 | `src/index.ts` | 服务器主文件，路由和 AI 逻辑 |
-| `src/types.ts` | 类型定义 |
-| `.env.example` | 环境变量模板 |
+| `src/types.ts` | 类型定义                     |
+| `.env.example` | 环境变量模板                 |
 
 #### 核心逻辑
 
 ```typescript
 // 1. 接收请求
-const { messages, systemPrompt } = req.body as ChatRequest
+const { messages, systemPrompt } = req.body as ChatRequest;
 
 // 2. 格式化消息
-const formattedMessages = formatMessagesForAPI(messages)
+const formattedMessages = formatMessagesForAPI(messages);
 
 // 3. 流式调用 AI
 const { stream } = await streamText({
   model: deepseekClient(AI_CONFIG.MODEL),
   system: systemMessage,
   messages: formattedMessages,
-})
+});
 
 // 4. SSE 流式返回
 for await (const chunk of stream) {
-  res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`)
+  res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
 }
 ```
 
 #### API 端点
 
 **POST /api/chat**
+
 - 请求：聊天消息数组
 - 响应：SSE 流式事件
 - 支持：自定义 system prompt
 
 **GET /health**
+
 - 用途：健康检查
 - 响应：服务器状态
 
@@ -131,7 +133,7 @@ for await (const chunk of stream) {
 ```typescript
 // ChatMessage - 聊天消息
 interface ChatMessage {
-  id: string;           // 唯一 ID
+  id: string; // 唯一 ID
   role: 'user' | 'assistant';
   content: string;
   timestamp?: number;
@@ -140,7 +142,7 @@ interface ChatMessage {
 // ChatRequest - API 请求
 interface ChatRequest {
   messages: ChatMessage[];
-  systemPrompt?: string;  // 可选的系统提示
+  systemPrompt?: string; // 可选的系统提示
 }
 
 // ChatResponse - API 响应
@@ -152,13 +154,13 @@ interface ChatResponse {
 
 #### 工具函数
 
-| 函数 | 作用 |
-|------|------|
-| `AI_CONFIG` | AI 配置常量 |
-| `formatMessagesForAPI()` | 格式化消息 |
-| `generateMessageId()` | 生成唯一 ID |
-| `createMessage()` | 创建消息对象 |
-| `getErrorMessage()` | 错误处理 |
+| 函数                     | 作用         |
+| ------------------------ | ------------ |
+| `AI_CONFIG`              | AI 配置常量  |
+| `formatMessagesForAPI()` | 格式化消息   |
+| `generateMessageId()`    | 生成唯一 ID  |
+| `createMessage()`        | 创建消息对象 |
+| `getErrorMessage()`      | 错误处理     |
 
 ## 开发工作流
 
@@ -167,6 +169,7 @@ interface ChatResponse {
 #### 场景 1：添加新的 API 端点
 
 1. **定义类型**（`packages/shared/src/types/`）
+
    ```typescript
    export interface NewFeatureRequest {
      // 定义请求类型
@@ -174,10 +177,11 @@ interface ChatResponse {
    ```
 
 2. **实现后端端点**（`apps/server/src/index.ts`）
+
    ```typescript
    app.post('/api/new-feature', async (req: Request, res: Response) => {
      // 实现逻辑
-   })
+   });
    ```
 
 3. **在前端调用**（`apps/web/src/App.tsx`）
@@ -185,7 +189,7 @@ interface ChatResponse {
    const response = await fetch(`${apiUrl}/api/new-feature`, {
      method: 'POST',
      body: JSON.stringify(data),
-   })
+   });
    ```
 
 #### 场景 2：扩展 AI 能力（添加工具调用）
@@ -212,12 +216,13 @@ const { stream } = await streamText({
       }),
     },
   },
-})
+});
 ```
 
 #### 场景 3：自定义 System Prompt
 
 前端：
+
 ```typescript
 // 发送自定义系统提示
 await fetch(`${apiUrl}/api/chat`, {
@@ -226,7 +231,7 @@ await fetch(`${apiUrl}/api/chat`, {
     messages: content,
     systemPrompt: '你是一个 Python 编程专家...',
   }),
-})
+});
 ```
 
 ## 编码规范
@@ -234,19 +239,20 @@ await fetch(`${apiUrl}/api/chat`, {
 ### TypeScript 规范
 
 ✅ **好的实践：**
+
 ```typescript
 // 1. 为所有函数添加参数和返回值类型
 function greet(name: string): string {
-  return `Hello, ${name}`
+  return `Hello, ${name}`;
 }
 
 // 2. 谨慎使用 any，优先使用具体类型
-const messages: ChatMessage[] = []  // ✅ 好
+const messages: ChatMessage[] = []; // ✅ 好
 
 // 3. 使用 interface 定义复杂对象
 interface Config {
-  apiKey: string
-  timeout: number
+  apiKey: string;
+  timeout: number;
 }
 
 // 4. 为异步函数明确标记
@@ -256,17 +262,19 @@ async function fetchData(): Promise<Data> {
 ```
 
 ❌ **避免的做法：**
+
 ```typescript
 // 1. 不用 any（除非万不得已）
-const data: any = {}
+const data: any = {};
 
 // 2. 不明确的类型
-function process(data) {  // 缺少类型
-  return data
+function process(data) {
+  // 缺少类型
+  return data;
 }
 
 // 3. 忽视错误处理
-await fetchData()  // 无错误处理
+await fetchData(); // 无错误处理
 ```
 
 ### 文件组织
@@ -295,14 +303,14 @@ apps/
 
 ### 命名规范
 
-| 对象 | 规范 | 例子 |
-|------|------|------|
-| 变量 | camelCase | `messageCount`, `isLoading` |
-| 函数 | camelCase | `handleSubmit`, `formatMessage` |
-| 类 / 接口 | PascalCase | `ChatMessage`, `ApiResponse` |
-| 常量 | UPPER_SNAKE_CASE | `MAX_TOKENS`, `API_BASE_URL` |
-| 文件 | kebab-case (components) | `chat-message.tsx` |
-| 文件 | index.ts | 库主入口 |
+| 对象      | 规范                    | 例子                            |
+| --------- | ----------------------- | ------------------------------- |
+| 变量      | camelCase               | `messageCount`, `isLoading`     |
+| 函数      | camelCase               | `handleSubmit`, `formatMessage` |
+| 类 / 接口 | PascalCase              | `ChatMessage`, `ApiResponse`    |
+| 常量      | UPPER_SNAKE_CASE        | `MAX_TOKENS`, `API_BASE_URL`    |
+| 文件      | kebab-case (components) | `chat-message.tsx`              |
+| 文件      | index.ts                | 库主入口                        |
 
 ## 性能优化
 
@@ -325,6 +333,7 @@ apps/
 ### Docker 部署
 
 创建 `Dockerfile`：
+
 ```dockerfile
 FROM node:18-alpine
 
@@ -343,6 +352,7 @@ CMD ["pnpm", "start"]
 ### 环境配置
 
 **生产环境 `.env`：**
+
 ```env
 DEEPSEEK_API_KEY=sk_live_xxx
 NODE_ENV=production
@@ -355,14 +365,14 @@ FRONTEND_URL=https://yourdomain.com
 ```typescript
 // 添加日志中间件
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
-  next()
-})
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 // 错误日志
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection:', reason)
-})
+  console.error('Unhandled Rejection:', reason);
+});
 ```
 
 ## 测试
@@ -371,35 +381,39 @@ process.on('unhandledRejection', (reason, promise) => {
 
 ```typescript
 // __tests__/utils.test.ts
-import { generateMessageId, createMessage } from '@ai-agent/shared'
+import { generateMessageId, createMessage } from '@ai-agent/shared';
 
 describe('Shared Utils', () => {
   test('generateMessageId should create unique IDs', () => {
-    const id1 = generateMessageId()
-    const id2 = generateMessageId()
-    expect(id1).not.toBe(id2)
-  })
+    const id1 = generateMessageId();
+    const id2 = generateMessageId();
+    expect(id1).not.toBe(id2);
+  });
 
   test('createMessage should create valid message', () => {
-    const msg = createMessage('user', 'Hello')
-    expect(msg.role).toBe('user')
-    expect(msg.content).toBe('Hello')
-  })
-})
+    const msg = createMessage('user', 'Hello');
+    expect(msg.role).toBe('user');
+    expect(msg.content).toBe('Hello');
+  });
+});
 ```
 
 ## 常见问题解答
 
 ### Q: 如何添加数据库支持？
+
 A: 安装 ORM（如 Prisma）并在后端添加数据库层即可，不影响现有逻辑。
 
 ### Q: 如何实现用户认证？
+
 A: 添加认证中间件，在 `/api/chat` 前进行 token 验证。
 
 ### Q: 如何处理长时间对话？
+
 A: 在数据库中存储对话历史，允许用户加载历史消息。
 
 ### Q: 可以使用其他 AI 模型吗？
+
 A: 可以，修改 `AI_CONFIG.MODEL` 即可，只要模型支持 OpenAI API 格式。
 
 ---

@@ -1,30 +1,105 @@
 /**
- * AI Agent Monorepo 的共享工具函数
- * 包含 AI 配置、消息格式化和辅助函数
+ * Shared utility functions for the AI Agent monorepo.
  */
 
-import type { ChatMessage } from '../types/index.js';
+import type { ChatMessage } from '../types/index';
+
+export interface MessageValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
 
 /**
- * AI 配置常量
- * 用于配置到 DeepSeek API 的连接
+ * Shared AI config constants.
  */
 export const AI_CONFIG = {
-  // DeepSeek API 配置（兼容 OpenAI）
   BASE_URL: 'https://api.deepseek.com/v1',
   MODEL: 'deepseek-chat',
   DEFAULT_TEMPERATURE: 0.7,
   DEFAULT_MAX_TOKENS: 2048,
-};
+} as const;
 
 /**
- * 格式化消息用于 API 请求
- * 将 ChatMessage 数组转换为 DeepSeek API 期需的格式
- *
- * @param messages - ChatMessage 对象数组
- * @returns 格式化后的消息数组
+ * Runtime type guard for a single chat message.
  */
-export function formatMessagesForAPI(messages: ChatMessage[]): Array<{ role: string; content: string }> {
+export function isChatMessage(value: unknown): value is ChatMessage {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<ChatMessage>;
+  const hasValidRole = candidate.role === 'user' || candidate.role === 'assistant';
+  const hasValidTimestamp =
+    candidate.timestamp === undefined || typeof candidate.timestamp === 'number';
+
+  return (
+    typeof candidate.id === 'string' &&
+    candidate.id.trim().length > 0 &&
+    hasValidRole &&
+    typeof candidate.content === 'string' &&
+    candidate.content.trim().length > 0 &&
+    hasValidTimestamp
+  );
+}
+
+/**
+ * Validate an unknown value as `ChatMessage[]`.
+ * This keeps message format rules aligned between frontend and backend.
+ */
+export function validateChatMessages(messages: unknown): MessageValidationResult {
+  if (!Array.isArray(messages)) {
+    return {
+      isValid: false,
+      errors: ['`messages` must be an array.'],
+    };
+  }
+
+  if (messages.length === 0) {
+    return {
+      isValid: false,
+      errors: ['`messages` cannot be empty.'],
+    };
+  }
+
+  const errors: string[] = [];
+
+  messages.forEach((message, index) => {
+    if (!message || typeof message !== 'object') {
+      errors.push(`messages[${index}] must be an object.`);
+      return;
+    }
+
+    const candidate = message as Partial<ChatMessage>;
+
+    if (typeof candidate.id !== 'string' || candidate.id.trim().length === 0) {
+      errors.push(`messages[${index}].id must be a non-empty string.`);
+    }
+
+    if (candidate.role !== 'user' && candidate.role !== 'assistant') {
+      errors.push(`messages[${index}].role must be 'user' or 'assistant'.`);
+    }
+
+    if (typeof candidate.content !== 'string' || candidate.content.trim().length === 0) {
+      errors.push(`messages[${index}].content must be a non-empty string.`);
+    }
+
+    if (candidate.timestamp !== undefined && typeof candidate.timestamp !== 'number') {
+      errors.push(`messages[${index}].timestamp must be a number when provided.`);
+    }
+  });
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Convert shared messages to API format.
+ */
+export function formatMessagesForAPI(
+  messages: ChatMessage[],
+): Array<{ role: 'user' | 'assistant'; content: string }> {
   return messages.map((msg) => ({
     role: msg.role,
     content: msg.content,
@@ -32,22 +107,14 @@ export function formatMessagesForAPI(messages: ChatMessage[]): Array<{ role: str
 }
 
 /**
- * 生成唯一的消息 ID
- * 使用时间戳和随机数不保证唯一性
- *
- * @returns 唯一的消息 ID 字符串
+ * Generate a unique message id.
  */
 export function generateMessageId(): string {
-  return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
 
 /**
- * 创建新的聊天消息
- * 帮厩函数，用于创建类型正确的 ChatMessage 对象
- *
- * @param role - 发送者角色（'user' 或 'assistant'）
- * @param content - 消息内容
- * @returns ChatMessage 对象
+ * Create a typed message object.
  */
 export function createMessage(role: 'user' | 'assistant', content: string): ChatMessage {
   return {
@@ -59,18 +126,16 @@ export function createMessage(role: 'user' | 'assistant', content: string): Chat
 }
 
 /**
- * 从各种错误类型中提取错误消息
- * 处理 Error、string 和未知类型的错误
- *
- * @param error - 错误对象或消息
- * @returns 错误消息字符串
+ * Safely convert unknown errors to a readable message.
  */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
+
   if (typeof error === 'string') {
     return error;
   }
-  return '发生了未知错误';
+
+  return 'An unknown error occurred.';
 }

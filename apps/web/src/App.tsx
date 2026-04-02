@@ -1,21 +1,37 @@
-/**
- * 主聊天应用组件
- * 实现带流式支持和打字机效果的 AI 聊天界面
- */
-
-import React, { useEffect, useRef } from 'react';
 import { useChat } from 'ai/react';
+import React, { useEffect, useMemo, useRef } from 'react';
+
+import { validateChatMessages } from '../../../packages/shared/src/utils/index';
+
 import type { ChatMessage } from '@ai-agent/shared';
 import './App.css';
 
-/**
- * App 组件 - 主聊天界面
- */
-function App(): React.ReactElement {
-  // 从环境变量或使用默认值获取 API URL
-  const apiUrl = import.meta.env.REACT_APP_API_URL || 'http://localhost:3000';
+type UIMessage = ChatMessage;
 
-  // 使用 useChat 钩子来管理聊天状态和流式传输
+function normalizeToUIMessage(
+  message: { id?: string; role?: string; content?: string },
+  index: number,
+): UIMessage | null {
+  if (message.role !== 'user' && message.role !== 'assistant') {
+    return null;
+  }
+
+  if (typeof message.content !== 'string' || message.content.trim().length === 0) {
+    return null;
+  }
+
+  return {
+    id:
+      typeof message.id === 'string' && message.id.trim().length > 0 ? message.id : `msg_${index}`,
+    role: message.role,
+    content: message.content,
+  };
+}
+
+function App(): React.ReactElement {
+  const apiUrl =
+    import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:3000';
+
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: `${apiUrl}/api/chat`,
     headers: {
@@ -23,123 +39,124 @@ function App(): React.ReactElement {
     },
   });
 
-  // 自动滚动到最新消息的引用
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  /**
-   * 有新消息时自动滚动到底部
-   */
-  const scrollToBottom = (): void => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
+  const messageList = useMemo(() => {
+    return messages
+      .map((message, index) =>
+        normalizeToUIMessage(
+          {
+            id: message.id,
+            role: message.role,
+            content: message.content,
+          },
+          index,
+        ),
+      )
+      .filter((message): message is UIMessage => message !== null);
   }, [messages]);
 
-  /**
-   * 处理表单提交
-   */
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
-    e.preventDefault();
-    if (input.trim()) {
-      handleSubmit(e);
+  const messageValidationErrors = useMemo(() => {
+    if (messageList.length === 0) {
+      return [];
     }
+
+    const result = validateChatMessages(messageList);
+    return result.isValid ? [] : result.errors;
+  }, [messageList]);
+
+  const uiError = error?.message || messageValidationErrors[0] || '';
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messageList, isLoading]);
+
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+
+    if (messageValidationErrors.length > 0) {
+      return;
+    }
+
+    if (!input.trim()) {
+      return;
+    }
+
+    handleSubmit(event);
   };
 
+  const canSend = !isLoading && input.trim().length > 0 && messageValidationErrors.length === 0;
+
   return (
-    <div className="app-container">
-      {/* 页眉 */}
+    <div className="app-shell">
       <header className="app-header">
-        <div className="header-content">
-          <h1>🤖 AI 聊天助手</h1>
-          <p className="subtitle">由 DeepSeek AI 驱动</p>
-        </div>
+        <h1>AI Chat Assistant</h1>
+        <p>React + TypeScript + DeepSeek API</p>
       </header>
 
-      {/* 主聊天区域 */}
-      <main className="chat-container">
-        {/* 消息显示区域 */}
-        <div className="messages-area">
-          {messages.length === 0 ? (
+      <main className="chat-panel">
+        <section className="messages-wrap">
+          {messageList.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-content">
-                <h2>欢迎使用 AI 聊天</h2>
-                <p>开始与 AI 助手进行对话。提问、获取帮助或闲聊！</p>
-                <div className="feature-list">
-                  <span>💬 自然对话</span>
-                  <span>🚀 实时流式传输</span>
-                  <span>🌍 多语言支持</span>
-                </div>
-              </div>
+              <h2>Start a conversation</h2>
+              <p>Ask anything. The assistant will respond in real time.</p>
             </div>
           ) : (
             <div className="messages-list">
-              {messages.map((message, index) => (
-                <div key={index} className={`message message-${message.role}`}>
-                  <div className="message-avatar">
-                    {message.role === 'user' ? '👤' : '🤖'}
-                  </div>
-                  <div className="message-content-wrapper">
-                    <div className="message-role">{message.role === 'user' ? '你' : '助手'}</div>
-                    <div className="message-content">{message.content}</div>
-                  </div>
-                </div>
-              ))}
+              {messageList.map((message) => {
+                const isUser = message.role === 'user';
+
+                return (
+                  <article
+                    key={message.id}
+                    className={`message-row ${isUser ? 'message-user' : 'message-assistant'}`}
+                  >
+                    <div className="message-avatar">{isUser ? 'U' : 'AI'}</div>
+                    <div className="message-bubble">
+                      <div className="message-role">{isUser ? 'You' : 'Assistant'}</div>
+                      <div className="message-content">{message.content}</div>
+                    </div>
+                  </article>
+                );
+              })}
+
               {isLoading && (
-                <div className="message message-assistant loading">
-                  <div className="message-avatar">🤖</div>
-                  <div className="message-content-wrapper">
-                    <div className="message-role">助手</div>
-                    <div className="message-content typing-indicator">
-                      <span></span>
-                      <span></span>
-                      <span></span>
+                <article className="message-row message-assistant">
+                  <div className="message-avatar">AI</div>
+                  <div className="message-bubble">
+                    <div className="message-role">Assistant</div>
+                    <div className="typing-indicator" aria-label="Assistant is typing">
+                      <span />
+                      <span />
+                      <span />
                     </div>
                   </div>
-                </div>
+                </article>
               )}
               <div ref={messagesEndRef} />
             </div>
           )}
 
-          {/* 错误显示 */}
-          {error && (
-            <div className="error-message">
-              <span className="error-icon">⚠️</span>
-              <div>
-                <strong>错误:</strong> {error.message}
-              </div>
+          {uiError && (
+            <div className="error-banner">
+              <strong>Error:</strong> {uiError}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* 输入区域 */}
-        <form onSubmit={onSubmit} className="input-form">
-          <div className="input-wrapper">
-            <input
-              type="text"
-              value={input}
-              onChange={handleInputChange}
-              placeholder="在这里输入您的消息..."
-              disabled={isLoading}
-              className="message-input"
-              autoFocus
-            />
-            <button type="submit" disabled={isLoading || !input.trim()} className="send-button">
-              {isLoading ? '⏳' : '📤'}
-            </button>
-          </div>
-          <div className="input-hint">
-            按 Enter 键发送，或点击发送按钮
-          </div>
+        <form onSubmit={onSubmit} className="composer">
+          <input
+            type="text"
+            value={input}
+            onChange={handleInputChange}
+            placeholder="Type your message..."
+            disabled={isLoading}
+            className="composer-input"
+          />
+          <button type="submit" disabled={!canSend} className="composer-send">
+            {isLoading ? 'Sending...' : 'Send'}
+          </button>
         </form>
       </main>
-
-      {/* 页脚 */}
-      <footer className="app-footer">
-        <p>AI Agent Monorepo v1.0.0 | 由 React + TypeScript + Vercel AI SDK 构建</p>
-      </footer>
     </div>
   );
 }

@@ -10,6 +10,7 @@
    - 复制 API Key（格式：`sk_live_...`）
 
 2. **检查环境**
+
    ```bash
    node --version  # 需要 v18+
    npm --version
@@ -101,6 +102,7 @@ tree -I node_modules
 ### 必配置
 
 **后端 `apps/server/.env`：**
+
 ```env
 DEEPSEEK_API_KEY=sk_live_your_api_key_here
 ```
@@ -108,6 +110,7 @@ DEEPSEEK_API_KEY=sk_live_your_api_key_here
 ### 可选配置
 
 **后端其他选项（`apps/server/.env`）：**
+
 ```env
 PORT=3000                           # 后端端口
 NODE_ENV=development                # 环境
@@ -115,6 +118,7 @@ FRONTEND_URL=http://localhost:5173  # 前端地址（CORS）
 ```
 
 **前端（`apps/web/.env`）：**
+
 ```env
 REACT_APP_API_URL=http://localhost:3000  # 后端地址
 ```
@@ -124,11 +128,13 @@ REACT_APP_API_URL=http://localhost:3000  # 后端地址
 ## 🧪 测试
 
 ### 方法 1：使用前端 UI
+
 1. 打开 http://localhost:5173
 2. 输入任何问题，如："你好"
 3. 观察 AI 的流式回复
 
 ### 方法 2：使用 curl 测试 API
+
 ```bash
 curl -X POST http://localhost:3000/api/chat \
   -H "Content-Type: application/json" \
@@ -144,6 +150,7 @@ curl -X POST http://localhost:3000/api/chat \
 ```
 
 ### 方法 3：健康检查
+
 ```bash
 curl http://localhost:3000/health
 ```
@@ -152,13 +159,13 @@ curl http://localhost:3000/health
 
 ## 🚨 常见问题速查
 
-| 问题 | 解决方案 |
-|------|--------|
-| `pnpm: command not found` | 运行 `npm install -g pnpm@9.0.0` |
-| `DEEPSEEK_API_KEY 未设置` | 检查 `apps/server/.env` 文件是否正确配置 |
-| `Cannot find module '@ai-agent/shared'` | 运行 `pnpm install` 重新安装依赖 |
-| 前端显示空白 | 打开 F12 开发者工具查看控制台错误 |
-| 后端无法连接 | 确保后端已启动（http://localhost:3000/health 可访问） |
+| 问题                                    | 解决方案                                              |
+| --------------------------------------- | ----------------------------------------------------- |
+| `pnpm: command not found`               | 运行 `npm install -g pnpm@9.0.0`                      |
+| `DEEPSEEK_API_KEY 未设置`               | 检查 `apps/server/.env` 文件是否正确配置              |
+| `Cannot find module '@ai-agent/shared'` | 运行 `pnpm install` 重新安装依赖                      |
+| 前端显示空白                            | 打开 F12 开发者工具查看控制台错误                     |
+| 后端无法连接                            | 确保后端已启动（http://localhost:3000/health 可访问） |
 
 ---
 
@@ -182,3 +189,9 @@ ai-agent-monorepo/
 ---
 
 **准备好了吗？让我们开始构建 AI 应用吧！** 🚀
+
+## 启动失败排查入口
+
+如果启动过程中遇到错误，请查看：
+
+- [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)

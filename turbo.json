@@ -1,15 +1,23 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["pnpm-lock.yaml", "tsconfig.json", ".env", ".env.local"],
+  "globalEnv": [
+    "NODE_ENV",
+    "DEEPSEEK_API_KEY",
+    "PORT",
+    "FRONTEND_URL",
+    "REACT_APP_API_URL",
+    "VITE_API_URL"
+  ],
   "tasks": {
     "dev": {
       "cache": false,
-      "persistent": true,
-      "inputs": ["src/**", "package.json", "tsconfig.json"]
+      "persistent": true
     },
     "build": {
-      "outputs": ["dist/**", "build/**"],
-      "cache": true,
-      "inputs": ["src/**", "package.json", "tsconfig.json"]
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "src/**", "package.json", "tsconfig.json"],
+      "outputs": ["dist/**", "build/**"]
     },
     "start": {
       "cache": false,
@@ -17,7 +25,14 @@
       "dependsOn": ["build"]
     },
     "lint": {
-      "cache": true
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", "src/**", "package.json", "tsconfig.json"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "inputs": ["$TURBO_DEFAULT$", "src/**", "package.json", "tsconfig.json"],
+      "outputs": []
     },
     "clean": {
       "cache": false

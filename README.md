@@ -80,11 +80,13 @@ pnpm install
 **后端配置：**
 
 1. 进入后端项目目录
+
    ```bash
    cd apps/server
    ```
 
 2. 复制 `.env.example` 为 `.env`
+
    ```bash
    cp .env.example .env
    ```
@@ -100,11 +102,13 @@ pnpm install
 **前端配置（可选）：**
 
 1. 进入前端项目目录
+
    ```bash
    cd apps/web
    ```
 
 2. 复制 `.env.example` 为 `.env`
+
    ```bash
    cp .env.example .env
    ```
@@ -250,17 +254,17 @@ data: {"type":"complete","processingTime":1234,"timestamp":"2024-01-01T00:00:00.
 
 ### 后端环境变量
 
-| 变量名 | 说明 | 必需 | 默认值 |
-| --- | --- | --- | --- |
-| `DEEPSEEK_API_KEY` | DeepSeek API 密钥 | ✅ 是 | - |
-| `PORT` | 服务器监听端口 | ❌ 否 | 3000 |
-| `NODE_ENV` | 运行环境 | ❌ 否 | development |
-| `FRONTEND_URL` | 前端 URL（CORS） | ❌ 否 | http://localhost:5173 |
+| 变量名             | 说明              | 必需  | 默认值                |
+| ------------------ | ----------------- | ----- | --------------------- |
+| `DEEPSEEK_API_KEY` | DeepSeek API 密钥 | ✅ 是 | -                     |
+| `PORT`             | 服务器监听端口    | ❌ 否 | 3000                  |
+| `NODE_ENV`         | 运行环境          | ❌ 否 | development           |
+| `FRONTEND_URL`     | 前端 URL（CORS）  | ❌ 否 | http://localhost:5173 |
 
 ### 前端环境变量
 
-| 变量名 | 说明 | 必需 | 默认值 |
-| --- | --- | --- | --- |
+| 变量名              | 说明         | 必需  | 默认值                |
+| ------------------- | ------------ | ----- | --------------------- |
 | `REACT_APP_API_URL` | 后端 API URL | ❌ 否 | http://localhost:3000 |
 
 ## 🧪 测试功能
@@ -294,12 +298,14 @@ curl -X POST http://localhost:3000/api/chat \
 ### 1. 错误：DEEPSEEK_API_KEY 未设置
 
 **解决方案：**
+
 - 确保在 `apps/server/.env` 文件中配置了 `DEEPSEEK_API_KEY`
 - 验证 API Key 格式是否正确（应以 `sk_` 开头）
 
 ### 2. 错误：ECONNREFUSED 连接被拒绝
 
 **解决方案：**
+
 - 确保后端已启动（运行 `pnpm dev`）
 - 检查后端是否在 http://localhost:3000 监听
 - 验证 CORS 配置是否正确
@@ -307,6 +313,7 @@ curl -X POST http://localhost:3000/api/chat \
 ### 3. 前端显示空白
 
 **解决方案：**
+
 - 打开浏览器开发者工具（F12）查看控制台错误
 - 确保 React 应用已正确编译
 - 清除浏览器缓存后重新加载
@@ -314,6 +321,7 @@ curl -X POST http://localhost:3000/api/chat \
 ### 4. AI 响应缓慢或超时
 
 **解决方案：**
+
 - 检查网络连接
 - 验证 DeepSeek API 配额是否充足
 - 查看后端日志了解详细错误信息
@@ -352,6 +360,7 @@ curl -X POST http://localhost:3000/api/chat \
 ### `packages/shared/src/types/index.ts`
 
 定义前后端共享的类型接口：
+
 - `ChatMessage`：聊天消息类型
 - `ChatRequest`：聊天请求类型
 - `ChatResponse`：聊天响应类型
@@ -360,6 +369,7 @@ curl -X POST http://localhost:3000/api/chat \
 ### `packages/shared/src/utils/index.ts`
 
 提供前后端共享的工具函数：
+
 - `AI_CONFIG`：AI 配置常量
 - `formatMessagesForAPI()`：消息格式化
 - `generateMessageId()`：ID 生成
@@ -369,6 +379,7 @@ curl -X POST http://localhost:3000/api/chat \
 ### `apps/server/src/index.ts`
 
 后端服务器主文件：
+
 - Express 应用配置
 - CORS 和中间件设置
 - `/api/chat` 端点实现（SSE 流处理）
@@ -378,6 +389,7 @@ curl -X POST http://localhost:3000/api/chat \
 ### `apps/web/src/App.tsx`
 
 前端主组件：
+
 - React 组件实现
 - 使用 `useChat` 钩子管理聊天状态
 - 流式消息显示和打字机效果
@@ -405,6 +417,7 @@ MIT License
 所有开发文档已按日期组织在 `docs/developer/` 目录下。
 
 **最新文档版本 (2026-04-02):**
+
 - [快速启动指南](./docs/developer/2026-04-02/QUICKSTART.md) - 5 分钟快速上手
 - [项目完整说明](./docs/developer/2026-04-02/README.md) - 功能、技术栈、API、常见问题
 - [详细开发指南](./docs/developer/2026-04-02/DEVELOPMENT.md) - 架构、编码规范、扩展方法
@@ -420,3 +433,15 @@ MIT License
 ---
 
 **祝你使用愉快！如有任何问题，欢迎提出。** 🚀
+
+## 启动失败排查补充
+
+若 `pnpm dev` 或 `pnpm build` 启动失败，请优先查看：
+
+- [docs/developer/2026-04-02/TROUBLESHOOTING.md](./docs/developer/2026-04-02/TROUBLESHOOTING.md)
+
+其中包含：
+
+- 端口占用（3000/5173）排查与释放步骤
+- 依赖安装失败（`pnpm install`）的清理和重装方案
+- `DEEPSEEK_API_KEY` 缺失导致 `400 MISSING_API_KEY` 的修复方式
