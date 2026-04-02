@@ -1,18 +1,43 @@
 import {
   AI_CONFIG,
   formatMessagesForAPI,
+  generateMessageId,
   getErrorMessage,
   validateChatMessages,
 } from '@ai-agent/shared';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import type { ServerConfig } from './types';
 import type { ChatMessage, ChatRequest } from '@ai-agent/shared';
 import type { Request, Response } from 'express';
 
-dotenv.config();
+function loadEnvironmentVariables(): string[] {
+  const envPaths = [
+    path.resolve(__dirname, '../.env.local'),
+    path.resolve(__dirname, '../.env'),
+  ];
+  const loadedFiles: string[] = [];
+
+  for (const envPath of envPaths) {
+    if (!fs.existsSync(envPath)) {
+      continue;
+    }
+
+    const result = dotenv.config({ path: envPath });
+
+    if (!result.error) {
+      loadedFiles.push(path.basename(envPath));
+    }
+  }
+
+  return loadedFiles;
+}
+
+const loadedEnvFiles = loadEnvironmentVariables();
 
 function loadConfig(): ServerConfig {
   const parsedPort = Number.parseInt(process.env.PORT || '3000', 10);
@@ -79,6 +104,42 @@ async function callDeepSeekAPI(
   return data.choices?.[0]?.message?.content?.trim() || 'No response generated.';
 }
 
+function normalizeRequestMessages(messages: unknown): ChatMessage[] {
+  if (!Array.isArray(messages)) {
+    return [];
+  }
+
+  const normalizedMessages: ChatMessage[] = [];
+
+  for (const message of messages) {
+    if (!message || typeof message !== 'object') {
+      continue;
+    }
+
+    const candidate = message as Partial<ChatMessage>;
+
+    if (candidate.role !== 'user' && candidate.role !== 'assistant') {
+      continue;
+    }
+
+    if (typeof candidate.content !== 'string' || candidate.content.trim().length === 0) {
+      continue;
+    }
+
+    normalizedMessages.push({
+      id:
+        typeof candidate.id === 'string' && candidate.id.trim().length > 0
+          ? candidate.id
+          : generateMessageId(),
+      role: candidate.role,
+      content: candidate.content,
+      ...(typeof candidate.timestamp === 'number' ? { timestamp: candidate.timestamp } : {}),
+    });
+  }
+
+  return normalizedMessages;
+}
+
 app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
@@ -99,12 +160,13 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         error: {
           code: 'MISSING_API_KEY',
           message:
-            'DEEPSEEK_API_KEY is not configured on the server. Please add it to apps/server/.env and restart the server.',
+            'DEEPSEEK_API_KEY is not configured on the server. Please add it to apps/server/.env.local or apps/server/.env and restart the server.',
         },
       });
     }
 
-    const validation = validateChatMessages(messages);
+    const normalizedMessages = normalizeRequestMessages(messages);
+    const validation = validateChatMessages(normalizedMessages);
     if (!validation.isValid) {
       return res.status(400).json({
         status: 'error',
@@ -115,8 +177,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       });
     }
 
-    const typedMessages = messages as ChatMessage[];
-    const formattedMessages = formatMessagesForAPI(typedMessages);
+    const formattedMessages = formatMessagesForAPI(normalizedMessages);
 
     const systemMessage =
       typeof systemPrompt === 'string' && systemPrompt.trim().length > 0
@@ -126,20 +187,11 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     const response = await callDeepSeekAPI(formattedMessages, systemMessage);
     const processingTime = Date.now() - startTime;
 
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('X-Processing-Time', String(processingTime));
+    res.setHeader('X-Response-Timestamp', new Date().toISOString());
 
-    res.write(`data: ${JSON.stringify({ content: response, type: 'text' })}\n\n`);
-    res.write(
-      `data: ${JSON.stringify({
-        type: 'complete',
-        processingTime,
-        timestamp: new Date().toISOString(),
-      })}\n\n`,
-    );
-
-    res.end();
+    res.send(response);
   } catch (error) {
     const errorMessage = getErrorMessage(error);
     console.error('[chat] API error:', error);
@@ -183,6 +235,9 @@ const server = app.listen(config.port, () => {
   console.log(`[server] Listening on http://localhost:${config.port}`);
   console.log(`[server] Environment: ${config.nodeEnv}`);
   console.log(`[server] Model: ${AI_CONFIG.MODEL}`);
+  console.log(
+    `[config] Loaded env files: ${loadedEnvFiles.length > 0 ? loadedEnvFiles.join(', ') : 'none'}`,
+  );
 });
 
 process.on('SIGTERM', () => {

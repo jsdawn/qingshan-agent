@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { validateChatMessages } from '../../../packages/shared/src/utils/index';
 
 import type { ChatMessage } from '@ai-agent/shared';
+import type { JSONValue } from 'ai';
 
 type UIMessage = ChatMessage;
 
@@ -27,30 +28,33 @@ function normalizeToUIMessage(
   };
 }
 
+function normalizeMessagesForRequest(
+  messages: Array<{ id?: string; role?: string; content?: string }>,
+): UIMessage[] {
+  return messages
+    .map((message, index) => normalizeToUIMessage(message, index))
+    .filter((message): message is UIMessage => message !== null);
+}
+
 function App(): React.ReactElement {
   const apiUrl =
     import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:3000';
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: `${apiUrl}/api/chat`,
+    streamProtocol: 'text',
     headers: {
       'Content-Type': 'application/json',
     },
+    experimental_prepareRequestBody: ({ messages: requestMessages, requestBody }) =>
+      ({
+        ...(requestBody ?? {}),
+        messages: normalizeMessagesForRequest(requestMessages),
+      }) as unknown as JSONValue,
   });
 
   const messageList = useMemo(() => {
-    return messages
-      .map((message, index) =>
-        normalizeToUIMessage(
-          {
-            id: message.id,
-            role: message.role,
-            content: message.content,
-          },
-          index,
-        ),
-      )
-      .filter((message): message is UIMessage => message !== null);
+    return normalizeMessagesForRequest(messages);
   }, [messages]);
 
   const messageValidationErrors = useMemo(() => {
