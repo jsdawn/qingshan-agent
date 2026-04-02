@@ -2,18 +2,16 @@
   "name": "@ai-agent/server",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --esm --respawn --transpile-only src/index.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@ai-agent/shared": "workspace:*",
-    "@ai-sdk/openai-compatible": "^1.0.0",
-    "@vercel/ai": "^4.0.0",
+    "ai": "^3.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2"

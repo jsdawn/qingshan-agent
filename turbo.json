@@ -1,6 +1,5 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "version": "2",
   "tasks": {
     "dev": {
       "cache": false,
@@ -23,9 +22,5 @@
     "clean": {
       "cache": false
     }
-  },
-  "dev": [
-    "server#dev",
-    "web#dev"
-  ]
+  }
 }

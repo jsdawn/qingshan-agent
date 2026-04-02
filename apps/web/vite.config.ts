@@ -10,7 +10,7 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false,
-    open: true,
+    open: false,
   },
   build: {
     target: 'ES2020',

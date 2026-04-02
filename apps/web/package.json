@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@ai-agent/shared": "workspace:*",
-    "@ai-sdk/react": "^1.0.0",
+    "ai": "^3.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

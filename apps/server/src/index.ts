@@ -3,13 +3,13 @@
  * 设置 Express 服务器、配置 CORS、配置路由和集成 AI
  */
 
-import 'dotenv/config';
+const dotenv = require('dotenv');
+dotenv.config();
+
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { openai as createOpenAI } from '@ai-sdk/openai-compatible';
-import { streamText } from '@vercel/ai';
 import { ChatRequest, formatMessagesForAPI, getErrorMessage, AI_CONFIG } from '@ai-agent/shared';
-import type { ServerConfig } from './types.js';
+import type { ServerConfig } from './types';
 
 // ============================================
 // 配置设置
@@ -54,17 +54,43 @@ app.use(
 );
 
 // ============================================
-// AI 客户端设置
+// AI 响应生成
 // ============================================
 
 /**
- * 使用 OpenAI 兼容提供者初始化 DeepSeek AI 客户端
- * Vercel AI SDK 支持 OpenAI 兼容 API，DeepSeek 提供了此接口
+ * 调用 DeepSeek API 获取 AI 响应
  */
-const deepseekClient = createOpenAI({
-  apiKey: config.deepseekApiKey,
-  baseURL: AI_CONFIG.BASE_URL,
-});
+async function callDeepSeekAPI(
+  messages: Array<{ role: string; content: string }>,
+  systemPrompt: string,
+): Promise<string> {
+  const response = await fetch(
+    'https://api.deepseek.com/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.deepseekApiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages,
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`API 调用失败: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content || '无法获取回复';
+}
 
 // ============================================
 // 路由
@@ -95,8 +121,8 @@ app.get('/health', (req: Request, res: Response) => {
  *   "systemPrompt": "\u53ef\u9009\u7684\u7cfb\u7edf\u6d88\u606f"
  * }
  *
- * 响\u5e94：
- * 服\u52a1\u7aef发\u9001\u4e8b\u4ef6\uff08SSE\uff09流式\uff0c\u6570\u636e\u4e3a JSON 字\u7b26\u4e32
+ * 响应：
+ * 服务端发送事件（SSE）流式，数据为 JSON 字符串
  */
 app.post('/api/chat', async (req: Request, res: Response) => {
   try {
@@ -138,30 +164,16 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       ? systemPrompt
       : '你是一个有效的 AI 助手。提供清晰、准确和简洁的回答。支持上下文保持和多语言对话。';
 
-    // 执行流式调用
-    const { stream } = await streamText({
-      model: deepseekClient(AI_CONFIG.MODEL),
-      system: systemMessage,
-      messages: formattedMessages as Parameters<typeof streamText>[0]['messages'],
-      temperature: AI_CONFIG.DEFAULT_TEMPERATURE,
-      maxTokens: AI_CONFIG.DEFAULT_MAX_TOKENS,
-      // 未来工具调用的位置（RAG、函数调用）
-      // tools: {
-      //   // tools will be added here for agent capabilities
-      // },
-    });
-
-    // 事件流式返回客户端
-    let streamedContent = '';
-
-    for await (const chunk of stream) {
-      streamedContent += chunk;
-
-      // 以 SSE 格式发送新段子
-      res.write(`data: ${JSON.stringify({ content: chunk, type: 'text' })}\n\n`);
-    }
+    // 调用 DeepSeek API
+    const response = await callDeepSeekAPI(
+      formattedMessages as Array<{ role: string; content: string }>,
+      systemMessage,
+    );
 
     const processingTime = Date.now() - startTime;
+
+    // 发送响应
+    res.write(`data: ${JSON.stringify({ content: response, type: 'text' })}\n\n`);
 
     // 发送完成消息
     res.write(
