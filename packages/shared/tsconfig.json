@@ -6,7 +6,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "lib": ["ES2020", "DOM"]
+    "lib": ["ES2020"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

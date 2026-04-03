@@ -1,12 +1,15 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["pnpm-lock.yaml", "tsconfig.json", ".env", ".env.local"],
+  "globalDependencies": ["pnpm-lock.yaml", "tsconfig.json", "apps/*/.env*", ".env", ".env.local"],
   "globalEnv": [
     "NODE_ENV",
-    "DEEPSEEK_API_KEY",
+    "AI_API_KEY",
+    "AI_BASE_URL",
+    "AI_MODEL",
+    "AI_TEMPERATURE",
+    "AI_MAX_TOKENS",
     "PORT",
     "FRONTEND_URL",
-    "REACT_APP_API_URL",
     "VITE_API_URL"
   ],
   "tasks": {

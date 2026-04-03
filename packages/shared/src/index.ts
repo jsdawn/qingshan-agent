@@ -1,16 +1,13 @@
-﻿/**
- * @ai-agent/shared 包的主导出文件
+/**
+ * Public exports for the shared package.
  */
 
-export type { ChatMessage, AIStreamResponse, ChatRequest, ChatResponse } from './types/index';
+export type { ChatMessage, ChatRequest } from './types/index';
 export type { AIProviderConfig, MessageValidationResult } from './utils/index';
 
 export {
-  AI_CONFIG,
-  isChatMessage,
   formatMessagesForAPI,
   generateMessageId,
-  createMessage,
   getErrorMessage,
   validateChatMessages,
 } from './utils/index';

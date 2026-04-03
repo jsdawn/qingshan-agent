@@ -1,421 +1,148 @@
-# 📚 开发指南
+# 开发指南
 
-## 项目架构设计
+## 当前架构
 
-### 整体架构图
+```text
+apps/web (http://localhost:5173)
+  └─ useChat('text') -> POST /api/chat
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    前端应用 (5173)                       │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │  React App (@ai-sdk/react - useChat Hook)       │  │
-│  │  ├─ App.tsx (UI Components)                     │  │
-│  │  ├─ 聊天界面、消息展示、输入框                  │  │
-│  │  └─ 流式打字机效果                              │  │
-│  └──────────────────────────────────────────────────┘  │
-└────────────────────┬─────────────────────────────────────┘
-                     │ HTTP POST /api/chat
-                     │ SSE 流传输
-                     ↓
-┌─────────────────────────────────────────────────────────┐
-│                 后端服务器 (3000)                        │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │  Express Server + Vercel AI SDK                 │  │
-│  │  ├─ GET  /health (健康检查)                    │  │
-│  │  ├─ POST /api/chat (聊天接口)                  │  │
-│  │  │  ├─ 接收消息                                │  │
-│  │  │  ├─ 调用 formatMessagesForAPI               │  │
-│  │  │  ├─ 调用 Vercel AI SDK streamText          │  │
-│  │  │  └─ SSE 流式返回响应                        │  │
-│  │  └─ CORS 中间件 (跨域处理)                    │  │
-│  └──────────────────────────────────────────────────┘  │
-└────────────────────┬─────────────────────────────────────┘
-                     │ OpenAI-compatible API
-                     │ (DeepSeek API)
-                     ↓
-┌─────────────────────────────────────────────────────────┐
-│        DeepSeek AI (https://api.deepseek.com/v1)        │
-│  • 模型: deepseek-chat                                  │
-│  • 温度: 0.7 (可配置)                                   │
-│  • Max Tokens: 2048 (可配置)                            │
-└─────────────────────────────────────────────────────────┘
+apps/server (http://localhost:3000)
+  ├─ GET /health
+  └─ POST /api/chat
+       ├─ 规范化请求消息
+       ├─ 校验消息结构
+       ├─ 调用 OpenAI-compatible /chat/completions
+       └─ 返回 text/plain
 
-共享模块 (@ai-agent/shared)
-├─ Types: ChatMessage, ChatRequest, ChatResponse
-├─ Utils: formatMessagesForAPI, generateMessageId, etc.
-└─ Config: AI_CONFIG (API 配置常量)
+packages/shared
+  ├─ ChatMessage / ChatRequest
+  └─ 消息校验、格式转换、错误处理工具
 ```
 
-## 核心模块详解
+## 包职责
 
-### 1️⃣ 前端模块 (apps/web)
+### `apps/web`
 
-#### 关键文件
+关键文件：
 
-| 文件             | 作用                     |
-| ---------------- | ------------------------ |
-| `src/App.tsx`    | 主应用组件，聊天 UI 交互 |
-| `src/App.css`    | 样式表                   |
-| `src/main.tsx`   | React 入口               |
-| `vite.config.ts` | Vite 构建配置            |
+- `src/App.tsx`: 聊天 UI、提交逻辑、错误提示、自动滚动
+- `src/config.ts`: 读取 `VITE_API_URL`
+- `src/lib/chatMessages.ts`: 将 `useChat` 消息格式规范化为共享消息结构
+- `src/main.tsx`: React 入口
 
-#### 核心逻辑
+实现说明：
 
-```typescript
-// useChat 钩子自动处理：
-// • 消息状态管理
-// • API 请求
-// • 流式响应处理
-// • 加载状态
+- 前端使用 `ai/react` 的 `useChat`
+- `streamProtocol: 'text'` 与后端返回的 `text/plain` 对齐
+- `experimental_prepareRequestBody` 会把消息整理成后端期望的 `ChatMessage[]`
+- UI 错误来自两处：`useChat` 的请求错误，以及共享校验函数返回的结构错误
 
-const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-  api: `${apiUrl}/api/chat`,
-});
+### `apps/server`
+
+关键文件：
+
+- `src/index.ts`: 加载配置并启动服务
+- `src/config.ts`: 读取 `.env.local`、`.env`，组装运行配置
+- `src/app.ts`: 注册中间件和 API 路由
+- `src/messages.ts`: 规范化请求里的消息数组
+- `src/ai.ts`: 调用上游 OpenAI-compatible Chat Completions 接口
+- `src/types.ts`: 服务内部配置类型
+
+请求流程：
+
+1. `POST /api/chat` 从请求体读取 `messages` 和 `systemPrompt`
+2. 若 `AI_API_KEY` 缺失，直接返回 `400 MISSING_API_KEY`
+3. `normalizeRequestMessages()` 过滤非法消息并补齐缺失 `id`
+4. `validateChatMessages()` 进行结构校验
+5. `formatMessagesForAPI()` 把消息转成上游接口需要的 `role/content`
+6. `callAIAPI()` 请求 `{AI_BASE_URL}/chat/completions`
+7. 把第一条回复内容作为纯文本返回
+
+当前路由：
+
+- `GET /health`: 返回环境、模型和密钥是否已配置
+- `POST /api/chat`: 返回模型回复纯文本
+- 其他路径统一返回 `404 NOT_FOUND`
+
+### `packages/shared`
+
+当前对外导出：
+
+- 类型：`ChatMessage`、`ChatRequest`
+- 工具：`validateChatMessages`、`formatMessagesForAPI`、`generateMessageId`、`getErrorMessage`
+- 配置类型：`AIProviderConfig`
+
+这个包只放跨端共享的类型和纯函数，不放 Express、React、dotenv 或具体提供商 SDK。
+
+## 环境变量
+
+### 后端
+
+读取顺序：
+
+1. `apps/server/.env.local`
+2. `apps/server/.env`
+
+由于 `dotenv` 默认不覆盖已有变量，所以 `.env.local` 优先级更高。
+
+变量列表：
+
+- `AI_API_KEY`: 必填；为空时 `/api/chat` 会返回 400
+- `AI_BASE_URL`: 可选；默认 `https://api.siliconflow.cn/v1`
+- `AI_MODEL`: 可选；默认 `meta-llama/Meta-Llama-3.1-70B-Instruct`
+- `AI_TEMPERATURE`: 可选；默认 `0.7`
+- `AI_MAX_TOKENS`: 可选；默认 `2048`
+- `PORT`: 可选；默认 `3000`
+- `NODE_ENV`: 可选；仅区分 `development` / `production`
+- `FRONTEND_URL`: 可选；默认 `http://localhost:5173`
+
+### 前端
+
+- `VITE_API_URL`: 后端地址，默认回退到 `http://localhost:3000`
+
+## 开发命令
+
+仓库根目录：
+
+```bash
+pnpm dev
+pnpm build
+pnpm lint
+pnpm typecheck
+pnpm clean
 ```
 
-#### 功能模块
+按包执行：
 
-- **聊天消息显示**：支持不同角色样式区分
-- **流式打字机效果**：自动实现，无需额外插件
-- **自动滚动**：新消息时自动滚动到底部
-- **错误处理**：显示友好的错误提示
-- **响应式设计**：适配各种屏幕尺寸
-
-### 2️⃣ 后端模块 (apps/server)
-
-#### 关键文件
-
-| 文件           | 作用                         |
-| -------------- | ---------------------------- |
-| `src/index.ts` | 服务器主文件，路由和 AI 逻辑 |
-| `src/types.ts` | 类型定义                     |
-| `.env.example` | 环境变量模板                 |
-
-#### 核心逻辑
-
-```typescript
-// 1. 接收请求
-const { messages, systemPrompt } = req.body as ChatRequest;
-
-// 2. 格式化消息
-const formattedMessages = formatMessagesForAPI(messages);
-
-// 3. 流式调用 AI
-const { stream } = await streamText({
-  model: deepseekClient(AI_CONFIG.MODEL),
-  system: systemMessage,
-  messages: formattedMessages,
-});
-
-// 4. SSE 流式返回
-for await (const chunk of stream) {
-  res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
-}
+```bash
+pnpm --filter @ai-agent/server dev
+pnpm --filter @ai-agent/web dev
+pnpm --filter @ai-agent/shared build
 ```
 
-#### API 端点
+## 变更约定
 
-**POST /api/chat**
+### 新增共享字段
 
-- 请求：聊天消息数组
-- 响应：SSE 流式事件
-- 支持：自定义 system prompt
+1. 先改 `packages/shared/src/types/index.ts`
+2. 如果需要校验，同步更新 `packages/shared/src/utils/index.ts`
+3. 前后端再分别接入，避免两端消息结构漂移
 
-**GET /health**
+### 调整聊天请求
 
-- 用途：健康检查
-- 响应：服务器状态
+1. 先检查 `apps/web/src/lib/chatMessages.ts`
+2. 再检查 `apps/server/src/messages.ts`
+3. 最后确认 `packages/shared/src/utils/index.ts` 的校验规则仍然成立
 
-### 3️⃣ 共享模块 (packages/shared)
+### 更换模型服务
 
-#### 类型系统
+1. 修改 `apps/server/.env.local`
+2. 确认目标服务兼容 OpenAI Chat Completions
+3. 访问 `/health` 检查配置是否生效
 
-```typescript
-// ChatMessage - 聊天消息
-interface ChatMessage {
-  id: string; // 唯一 ID
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp?: number;
-}
+## 质量基线
 
-// ChatRequest - API 请求
-interface ChatRequest {
-  messages: ChatMessage[];
-  systemPrompt?: string; // 可选的系统提示
-}
-
-// ChatResponse - API 响应
-interface ChatResponse {
-  status: 'success' | 'error';
-  content?: string;
-}
-```
-
-#### 工具函数
-
-| 函数                     | 作用         |
-| ------------------------ | ------------ |
-| `AI_CONFIG`              | AI 配置常量  |
-| `formatMessagesForAPI()` | 格式化消息   |
-| `generateMessageId()`    | 生成唯一 ID  |
-| `createMessage()`        | 创建消息对象 |
-| `getErrorMessage()`      | 错误处理     |
-
-## 开发工作流
-
-### 添加新功能
-
-#### 场景 1：添加新的 API 端点
-
-1. **定义类型**（`packages/shared/src/types/`）
-
-   ```typescript
-   export interface NewFeatureRequest {
-     // 定义请求类型
-   }
-   ```
-
-2. **实现后端端点**（`apps/server/src/index.ts`）
-
-   ```typescript
-   app.post('/api/new-feature', async (req: Request, res: Response) => {
-     // 实现逻辑
-   });
-   ```
-
-3. **在前端调用**（`apps/web/src/App.tsx`）
-   ```typescript
-   const response = await fetch(`${apiUrl}/api/new-feature`, {
-     method: 'POST',
-     body: JSON.stringify(data),
-   });
-   ```
-
-#### 场景 2：扩展 AI 能力（添加工具调用）
-
-在后端 `apps/server/src/index.ts` 中：
-
-```typescript
-const { stream } = await streamText({
-  model: deepseekClient(AI_CONFIG.MODEL),
-  system: systemMessage,
-  messages: formattedMessages,
-  tools: {
-    // 定义可用的工具
-    search: {
-      description: 'Search the web',
-      parameters: z.object({
-        query: z.string(),
-      }),
-    },
-    calculate: {
-      description: 'Perform calculations',
-      parameters: z.object({
-        expression: z.string(),
-      }),
-    },
-  },
-});
-```
-
-#### 场景 3：自定义 System Prompt
-
-前端：
-
-```typescript
-// 发送自定义系统提示
-await fetch(`${apiUrl}/api/chat`, {
-  method: 'POST',
-  body: JSON.stringify({
-    messages: content,
-    systemPrompt: '你是一个 Python 编程专家...',
-  }),
-});
-```
-
-## 编码规范
-
-### TypeScript 规范
-
-✅ **好的实践：**
-
-```typescript
-// 1. 为所有函数添加参数和返回值类型
-function greet(name: string): string {
-  return `Hello, ${name}`;
-}
-
-// 2. 谨慎使用 any，优先使用具体类型
-const messages: ChatMessage[] = []; // ✅ 好
-
-// 3. 使用 interface 定义复杂对象
-interface Config {
-  apiKey: string;
-  timeout: number;
-}
-
-// 4. 为异步函数明确标记
-async function fetchData(): Promise<Data> {
-  // ...
-}
-```
-
-❌ **避免的做法：**
-
-```typescript
-// 1. 不用 any（除非万不得已）
-const data: any = {};
-
-// 2. 不明确的类型
-function process(data) {
-  // 缺少类型
-  return data;
-}
-
-// 3. 忽视错误处理
-await fetchData(); // 无错误处理
-```
-
-### 文件组织
-
-```
-apps/
-├── server/
-│   ├── src/
-│   │   ├── index.ts          # 主文件（含所有路由）
-│   │   ├── types.ts          # 类型定义
-│   │   ├── middleware/       # 中间件（如需要）
-│   │   ├── routes/           # 路由模块（如需要）
-│   │   └── services/         # 业务逻辑（如需要）
-│   └── package.json
-│
-└── web/
-    ├── src/
-    │   ├── App.tsx           # 主组件
-    │   ├── App.css           # 样式
-    │   ├── components/       # 可复用组件（如需要）
-    │   ├── hooks/            # 自定义钩子（如需要）
-    │   ├── utils/            # 工具函数（如需要）
-    │   └── main.tsx          # 入口
-    └── package.json
-```
-
-### 命名规范
-
-| 对象      | 规范                    | 例子                            |
-| --------- | ----------------------- | ------------------------------- |
-| 变量      | camelCase               | `messageCount`, `isLoading`     |
-| 函数      | camelCase               | `handleSubmit`, `formatMessage` |
-| 类 / 接口 | PascalCase              | `ChatMessage`, `ApiResponse`    |
-| 常量      | UPPER_SNAKE_CASE        | `MAX_TOKENS`, `API_BASE_URL`    |
-| 文件      | kebab-case (components) | `chat-message.tsx`              |
-| 文件      | index.ts                | 库主入口                        |
-
-## 性能优化
-
-### 前端优化
-
-1. **消息虚拟化**：当消息数量很多时，考虑使用虚拟列表
-2. **防抖输入**：对输入框进行防抖处理
-3. **代码分割**：支持按需加载模块
-4. **缓存**：利用浏览器缓存减少请求
-
-### 后端优化
-
-1. **连接池**：使用数据库连接池（如需数据库）
-2. **缓存**：缓存频繁访问的数据
-3. **速率限制**：防止 API 滥用
-4. **日志记录**：记录关键操作用于调试
-
-## 部署指南
-
-### Docker 部署
-
-创建 `Dockerfile`：
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
-
-COPY . .
-
-RUN pnpm build
-
-CMD ["pnpm", "start"]
-```
-
-### 环境配置
-
-**生产环境 `.env`：**
-
-```env
-DEEPSEEK_API_KEY=sk_live_xxx
-NODE_ENV=production
-PORT=3000
-FRONTEND_URL=https://yourdomain.com
-```
-
-### 监控和日志
-
-```typescript
-// 添加日志中间件
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
-
-// 错误日志
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection:', reason);
-});
-```
-
-## 测试
-
-### 单元测试示例
-
-```typescript
-// __tests__/utils.test.ts
-import { generateMessageId, createMessage } from '@ai-agent/shared';
-
-describe('Shared Utils', () => {
-  test('generateMessageId should create unique IDs', () => {
-    const id1 = generateMessageId();
-    const id2 = generateMessageId();
-    expect(id1).not.toBe(id2);
-  });
-
-  test('createMessage should create valid message', () => {
-    const msg = createMessage('user', 'Hello');
-    expect(msg.role).toBe('user');
-    expect(msg.content).toBe('Hello');
-  });
-});
-```
-
-## 常见问题解答
-
-### Q: 如何添加数据库支持？
-
-A: 安装 ORM（如 Prisma）并在后端添加数据库层即可，不影响现有逻辑。
-
-### Q: 如何实现用户认证？
-
-A: 添加认证中间件，在 `/api/chat` 前进行 token 验证。
-
-### Q: 如何处理长时间对话？
-
-A: 在数据库中存储对话历史，允许用户加载历史消息。
-
-### Q: 可以使用其他 AI 模型吗？
-
-A: 可以，修改 `AI_CONFIG.MODEL` 即可，只要模型支持 OpenAI API 格式。
-
----
-
-**准备好开发了吗？祝你编码愉快！** 🎉
+- Web 包开启了 `noUnusedLocals` 和 `noUnusedParameters`
+- 共享逻辑优先收敛到 `packages/shared`
+- 根目录通过 Turbo 统一跑 `lint`、`typecheck`、`build`
+- 当前仓库没有测试目录，回归主要依赖静态检查和手动联调

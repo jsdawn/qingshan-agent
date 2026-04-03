@@ -1,44 +1,13 @@
-﻿import { validateChatMessages } from '@ai-agent/shared';
 import { useChat } from 'ai/react';
 import React, { useEffect, useMemo, useRef } from 'react';
 
+import { getApiUrl } from './config';
+import { getChatValidationErrors, normalizeMessagesForRequest } from './lib/chatMessages';
 
-import type { ChatMessage } from '@ai-agent/shared';
 import type { JSONValue } from 'ai';
 
-type UIMessage = ChatMessage;
-
-function normalizeToUIMessage(
-  message: { id?: string; role?: string; content?: string },
-  index: number,
-): UIMessage | null {
-  if (message.role !== 'user' && message.role !== 'assistant') {
-    return null;
-  }
-
-  if (typeof message.content !== 'string' || message.content.trim().length === 0) {
-    return null;
-  }
-
-  return {
-    id:
-      typeof message.id === 'string' && message.id.trim().length > 0 ? message.id : `msg_${index}`,
-    role: message.role,
-    content: message.content,
-  };
-}
-
-function normalizeMessagesForRequest(
-  messages: Array<{ id?: string; role?: string; content?: string }>,
-): UIMessage[] {
-  return messages
-    .map((message, index) => normalizeToUIMessage(message, index))
-    .filter((message): message is UIMessage => message !== null);
-}
-
 function App(): React.ReactElement {
-  const apiUrl =
-    import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const apiUrl = getApiUrl();
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: `${apiUrl}/api/chat`,
@@ -58,12 +27,7 @@ function App(): React.ReactElement {
   }, [messages]);
 
   const messageValidationErrors = useMemo(() => {
-    if (messageList.length === 0) {
-      return [];
-    }
-
-    const result = validateChatMessages(messageList);
-    return result.isValid ? [] : result.errors;
+    return getChatValidationErrors(messageList);
   }, [messageList]);
 
   const uiError = error?.message || messageValidationErrors[0] || '';
@@ -95,7 +59,7 @@ function App(): React.ReactElement {
         <header className="rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-sky-500 px-5 py-4 text-white shadow-lg shadow-blue-300/40">
           <h1 className="text-xl font-bold md:text-2xl">AI Chat Assistant</h1>
           <p className="mt-1 text-sm text-blue-50">
-            React + TypeScript + Tailwind CSS + DeepSeek API
+            React + TypeScript + Tailwind CSS + OpenAI-compatible API
           </p>
         </header>
 

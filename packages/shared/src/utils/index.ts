@@ -10,57 +10,13 @@ export interface MessageValidationResult {
 }
 
 /**
- * AI 提供商配置接口 - 支持 OpenAI 兼容的 API
- * 支持的提供商：OpenAI、硅基流动、DeepSeek 等任何 OpenAI 兼容的服务
+ * OpenAI-compatible provider configuration shared as a type contract.
  */
 export interface AIProviderConfig {
-  /** API 基础 URL 例如: https://api.openai.com/v1 */
   baseUrl: string;
-  /** 使用的模型名称 */
   model: string;
-  /** 温度参数 (0-2)，控制输出的随机性 */
   temperature: number;
-  /** 最大 tokens 数 */
   maxTokens: number;
-}
-
-/**
- * 默认 AI 配置
- * 实际配置通过环境变量在服务器端加载（见 apps/server/src/index.ts）
- * 支持的环境变量:
- *   AI_BASE_URL - API 基础 URL
- *   AI_MODEL - 模型名称
- *   AI_TEMPERATURE - 温度参数
- *   AI_MAX_TOKENS - 最大 tokens
- */
-export const AI_CONFIG: AIProviderConfig = {
-  baseUrl: 'https://api.siliconflow.cn/v1',
-  model: 'meta-llama/Meta-Llama-3.1-70B-Instruct',
-  temperature: 0.7,
-  maxTokens: 2048,
-};
-
-/**
- * Runtime type guard for a single chat message.
- */
-export function isChatMessage(value: unknown): value is ChatMessage {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const candidate = value as Partial<ChatMessage>;
-  const hasValidRole = candidate.role === 'user' || candidate.role === 'assistant';
-  const hasValidTimestamp =
-    candidate.timestamp === undefined || typeof candidate.timestamp === 'number';
-
-  return (
-    typeof candidate.id === 'string' &&
-    candidate.id.trim().length > 0 &&
-    hasValidRole &&
-    typeof candidate.content === 'string' &&
-    candidate.content.trim().length > 0 &&
-    hasValidTimestamp
-  );
 }
 
 /**
@@ -132,18 +88,6 @@ export function formatMessagesForAPI(
  */
 export function generateMessageId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-}
-
-/**
- * Create a typed message object.
- */
-export function createMessage(role: 'user' | 'assistant', content: string): ChatMessage {
-  return {
-    id: generateMessageId(),
-    role,
-    content,
-    timestamp: Date.now(),
-  };
 }
 
 /**

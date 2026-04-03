@@ -1,9 +1,5 @@
-/**
- * React + TypeScript 前端的 Vite 配置
- */
-
-import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
@@ -17,9 +13,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
-      external: [],
       output: {
-        // 禁用tree-shake 对 @ai-agent/shared 模块
         manualChunks: {
           shared: ['@ai-agent/shared'],
         },
@@ -27,12 +21,6 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    // 包含 @ai-agent/shared 以加快开发速度
     include: ['@ai-agent/shared'],
-  },
-  define: {
-    'process.env.REACT_APP_API_URL': JSON.stringify(
-      process.env.REACT_APP_API_URL || 'http://localhost:3000',
-    ),
   },
 });
