@@ -4,6 +4,9 @@ import {
   generateMessageId,
   getErrorMessage,
   validateChatMessages,
+  type AIProviderConfig,
+  type ChatMessage,
+  type ChatRequest,
 } from '@ai-agent/shared';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -12,8 +15,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type { ServerConfig } from './types';
-import type { AIProviderConfig } from '@ai-agent/shared';
-import type { ChatMessage, ChatRequest } from '@ai-agent/shared';
 import type { Request, Response } from 'express';
 
 function loadEnvironmentVariables(): string[] {
