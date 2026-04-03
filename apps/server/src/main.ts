@@ -1,10 +1,6 @@
-import { createApp } from './app';
-import { loadAppConfig } from './config';
+import { createApp } from './app/createApp';
+import { loadAppConfig } from './config/appConfig';
 
-/**
- * 服务端启动入口。
- * 负责加载配置、启动 HTTP 服务并处理退出信号。
- */
 const config = loadAppConfig();
 const app = createApp(config);
 const server = app.listen(config.server.port, () => {

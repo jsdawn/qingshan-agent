@@ -9,10 +9,10 @@ apps/web (http://localhost:5173)
 apps/server (http://localhost:3000)
   ├─ GET /health
   └─ POST /api/chat
-       ├─ 规范化请求消息
-       ├─ 校验消息结构
-       ├─ 调用 OpenAI-compatible /chat/completions
-       └─ 返回 text/plain
+     ├─ 规范化请求消息
+     ├─ 校验消息结构
+     ├─ 调用 OpenAI-compatible /chat/completions
+     └─ 返回 text/plain
 
 packages/shared
   ├─ ChatMessage / ChatRequest
@@ -25,9 +25,12 @@ packages/shared
 
 关键文件：
 
-- `src/App.tsx`: 聊天 UI、提交逻辑、错误提示、自动滚动
-- `src/config.ts`: 读取 `VITE_API_URL`
-- `src/lib/chatMessages.ts`: 将 `useChat` 消息格式规范化为共享消息结构
+- `src/app/App.tsx`: 聊天页面装配、提交逻辑、错误处理
+- `src/components/chat/ChatHeader.tsx`: 页面头部
+- `src/components/chat/ChatMessageList.tsx`: 消息列表、加载态、错误展示
+- `src/components/chat/ChatComposer.tsx`: 输入框与发送按钮
+- `src/config/api.ts`: 读取 `VITE_API_URL`
+- `src/utils/chat/chatMessages.ts`: 将 `useChat` 消息格式规范化为共享消息结构
 - `src/main.tsx`: React 入口
 
 实现说明：
@@ -35,18 +38,26 @@ packages/shared
 - 前端使用 `ai/react` 的 `useChat`
 - `streamProtocol: 'text'` 与后端返回的 `text/plain` 对齐
 - `experimental_prepareRequestBody` 会把消息整理成后端期望的 `ChatMessage[]`
-- UI 错误来自两处：`useChat` 的请求错误，以及共享校验函数返回的结构错误
+- UI 错误来自两处：`useChat` 请求错误，以及共享校验函数返回的结构错误
+
+目录约定：
+
+- `app/` 放页面装配层
+- `components/` 放可复用 UI
+- `config/` 放配置读取
+- `utils/` 放纯工具函数
 
 ### `apps/server`
 
 关键文件：
 
-- `src/index.ts`: 加载配置并启动服务
-- `src/config.ts`: 读取 `.env.local`、`.env`，组装运行配置
-- `src/app.ts`: 注册中间件和 API 路由
-- `src/messages.ts`: 规范化请求里的消息数组
-- `src/ai.ts`: 调用上游 OpenAI-compatible Chat Completions 接口
-- `src/types.ts`: 服务内部配置类型
+- `src/main.ts`: 加载配置并启动服务
+- `src/app/createApp.ts`: 注册中间件、健康检查与业务路由
+- `src/config/appConfig.ts`: 读取 `.env.local`、`.env`，组装运行配置
+- `src/features/chat/chatMessages.ts`: 规范化请求里的消息数组
+- `src/features/chat/chatRoutes.ts`: 聊天路由与业务处理
+- `src/services/ai/callAIAPI.ts`: 调用上游 OpenAI-compatible Chat Completions 接口
+- `src/types/app.ts`: 服务内部配置类型
 
 请求流程：
 
@@ -58,11 +69,14 @@ packages/shared
 6. `callAIAPI()` 请求 `{AI_BASE_URL}/chat/completions`
 7. 把第一条回复内容作为纯文本返回
 
-当前路由：
+目录约定：
 
-- `GET /health`: 返回环境、模型和密钥是否已配置
-- `POST /api/chat`: 返回模型回复纯文本
-- 其他路径统一返回 `404 NOT_FOUND`
+- `main.ts` 是进程入口
+- `app/` 放应用装配代码
+- `config/` 放配置加载代码
+- `features/` 按业务域拆分
+- `services/` 放外部服务访问层
+- `types/` 放服务端内部类型
 
 ### `packages/shared`
 
@@ -72,7 +86,7 @@ packages/shared
 - 工具：`validateChatMessages`、`formatMessagesForAPI`、`generateMessageId`、`getErrorMessage`
 - 配置类型：`AIProviderConfig`
 
-这个包只放跨端共享的类型和纯函数，不放 Express、React、dotenv 或具体提供商 SDK。
+这个包只放跨端共享的类型和纯函数，不放 Express、React、dotenv 或具体供应商 SDK。
 
 ## 环境变量
 
@@ -125,20 +139,27 @@ pnpm --filter @ai-agent/shared build
 ### 新增共享字段
 
 1. 先改 `packages/shared/src/types/index.ts`
-2. 如果需要校验，同步更新 `packages/shared/src/utils/index.ts`
-3. 前后端再分别接入，避免两端消息结构漂移
+2. 如需校验规则，同步更新 `packages/shared/src/utils/index.ts`
+3. 再让前后端分别接入，避免两端消息结构漂移
 
 ### 调整聊天请求
 
-1. 先检查 `apps/web/src/lib/chatMessages.ts`
-2. 再检查 `apps/server/src/messages.ts`
+1. 先检查 `apps/web/src/utils/chat/chatMessages.ts`
+2. 再检查 `apps/server/src/features/chat/chatMessages.ts`
 3. 最后确认 `packages/shared/src/utils/index.ts` 的校验规则仍然成立
 
-### 更换模型服务
+### 替换模型服务
 
 1. 修改 `apps/server/.env.local`
 2. 确认目标服务兼容 OpenAI Chat Completions
 3. 访问 `/health` 检查配置是否生效
+
+### 调整目录结构
+
+1. 先明确文件职责属于 `app`、`components`、`config`、`utils`、`features`、`services` 还是 `types`
+2. 移动文件后同步修正 import
+3. 更新 `README.md` 和 `DEVELOPMENT.md`
+4. 至少执行一次 `pnpm typecheck`
 
 ## 质量基线
 

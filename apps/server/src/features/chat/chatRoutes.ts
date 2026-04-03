@@ -4,50 +4,19 @@ import {
   validateChatMessages,
   type ChatRequest,
 } from '@ai-agent/shared';
-import cors from 'cors';
-import express from 'express';
+import { Router, type Request, type Response } from 'express';
 
-import { callAIAPI } from './ai';
-import { normalizeRequestMessages } from './messages';
+import { callAIAPI } from '../../services/ai/callAIAPI';
+import { normalizeRequestMessages } from './chatMessages';
 
-import type { AppConfig } from './types';
-import type { Request, Response } from 'express';
+import type { AppConfig } from '../../types/app';
 
-/**
- * 默认系统提示词。
- */
 const DEFAULT_SYSTEM_PROMPT = 'You are a helpful AI assistant. Provide clear and concise answers.';
 
-/**
- * 创建并配置 Express 应用实例。
- *
- * @param config 应用启动配置。
- * @returns 已完成中间件和路由注册的 Express 实例。
- */
-export function createApp(config: AppConfig): express.Express {
-  const app = express();
+export function createChatRouter(config: AppConfig): Router {
+  const router = Router();
 
-  app.use(express.json({ limit: '10mb' }));
-  app.use(
-    cors({
-      origin: config.server.frontendUrl,
-      methods: ['GET', 'POST', 'OPTIONS'],
-      credentials: true,
-    }),
-  );
-
-  app.get('/health', (_req: Request, res: Response) => {
-    res.json({
-      status: 'ok',
-      environment: config.server.nodeEnv,
-      apiKeyConfigured: Boolean(config.server.aiApiKey),
-      aiProvider: config.ai.baseUrl,
-      aiModel: config.ai.model,
-      timestamp: new Date().toISOString(),
-    });
-  });
-
-  app.post('/api/chat', async (req: Request, res: Response) => {
+  router.post('/', async (req: Request, res: Response) => {
     try {
       const startTime = Date.now();
       const { messages, systemPrompt } = req.body as Partial<ChatRequest>;
@@ -111,15 +80,5 @@ export function createApp(config: AppConfig): express.Express {
     }
   });
 
-  app.use((req: Request, res: Response) => {
-    res.status(404).json({
-      status: 'error',
-      error: {
-        code: 'NOT_FOUND',
-        message: `Route ${req.method} ${req.path} not found`,
-      },
-    });
-  });
-
-  return app;
+  return router;
 }
