@@ -2,7 +2,8 @@
 
 ## 开发指南
 
-代码变更后，需 `pnpm build` 打包产物后，使用 `@ai-agent/shared` 消费
+- 代码变更后，需 `pnpm build` 打包产物；
+- `pnpm install` 安装后使用 `@ai-agent/shared` 消费
 
 ```ts
 import { validateChatMessages } from '@ai-agent/shared';

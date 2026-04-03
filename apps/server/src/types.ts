@@ -20,7 +20,7 @@ export interface ExtendedChatRequest extends ChatRequest {
 export interface ServerConfig {
   port: number;
   nodeEnv: 'development' | 'production';
-  deepseekApiKey: string;
+  aiApiKey: string;
   frontendUrl: string;
 }
 

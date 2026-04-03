@@ -10,14 +10,35 @@ export interface MessageValidationResult {
 }
 
 /**
- * Shared AI config constants.
+ * AI 提供商配置接口 - 支持 OpenAI 兼容的 API
+ * 支持的提供商：OpenAI、硅基流动、DeepSeek 等任何 OpenAI 兼容的服务
  */
-export const AI_CONFIG = {
-  BASE_URL: 'https://api.deepseek.com/v1',
-  MODEL: 'deepseek-chat',
-  DEFAULT_TEMPERATURE: 0.7,
-  DEFAULT_MAX_TOKENS: 2048,
-} as const;
+export interface AIProviderConfig {
+  /** API 基础 URL 例如: https://api.openai.com/v1 */
+  baseUrl: string;
+  /** 使用的模型名称 */
+  model: string;
+  /** 温度参数 (0-2)，控制输出的随机性 */
+  temperature: number;
+  /** 最大 tokens 数 */
+  maxTokens: number;
+}
+
+/**
+ * 默认 AI 配置
+ * 实际配置通过环境变量在服务器端加载（见 apps/server/src/index.ts）
+ * 支持的环境变量:
+ *   AI_BASE_URL - API 基础 URL
+ *   AI_MODEL - 模型名称
+ *   AI_TEMPERATURE - 温度参数
+ *   AI_MAX_TOKENS - 最大 tokens
+ */
+export const AI_CONFIG: AIProviderConfig = {
+  baseUrl: 'https://api.siliconflow.cn/v1',
+  model: 'meta-llama/Meta-Llama-3.1-70B-Instruct',
+  temperature: 0.7,
+  maxTokens: 2048,
+};
 
 /**
  * Runtime type guard for a single chat message.

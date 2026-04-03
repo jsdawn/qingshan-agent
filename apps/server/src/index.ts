@@ -1,5 +1,5 @@
 import {
-  AI_CONFIG,
+  AI_CONFIG as DEFAULT_AI_CONFIG,
   formatMessagesForAPI,
   generateMessageId,
   getErrorMessage,
@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type { ServerConfig } from './types';
+import type { AIProviderConfig } from '@ai-agent/shared';
 import type { ChatMessage, ChatRequest } from '@ai-agent/shared';
 import type { Request, Response } from 'express';
 
@@ -45,13 +46,13 @@ function loadConfig(): ServerConfig {
   const config: ServerConfig = {
     port: Number.isNaN(parsedPort) ? 3000 : parsedPort,
     nodeEnv: (process.env.NODE_ENV as 'development' | 'production') || 'development',
-    deepseekApiKey: process.env.DEEPSEEK_API_KEY || '',
+    aiApiKey: process.env.AI_API_KEY || '',
     frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   };
 
-  if (!config.deepseekApiKey) {
+  if (!config.aiApiKey) {
     console.warn(
-      '[config] DEEPSEEK_API_KEY is missing. /api/chat will return HTTP 400 until it is configured.',
+      '[config] AI_API_KEY is missing. /api/chat will return HTTP 400 until it is configured.',
     );
   }
 
@@ -59,6 +60,20 @@ function loadConfig(): ServerConfig {
 }
 
 const config = loadConfig();
+
+/**
+ * 从环境变量加载 AI 配置，支持任何 OpenAI 兼容的提供商
+ */
+function loadAIConfig(): AIProviderConfig {
+  return {
+    baseUrl: process.env.AI_BASE_URL || DEFAULT_AI_CONFIG.baseUrl,
+    model: process.env.AI_MODEL || DEFAULT_AI_CONFIG.model,
+    temperature: parseFloat(process.env.AI_TEMPERATURE || String(DEFAULT_AI_CONFIG.temperature)),
+    maxTokens: parseInt(process.env.AI_MAX_TOKENS || String(DEFAULT_AI_CONFIG.maxTokens), 10),
+  };
+}
+
+const AI_CONFIG = loadAIConfig();
 const app = express();
 
 app.use(express.json({ limit: '10mb' }));
@@ -70,28 +85,32 @@ app.use(
   }),
 );
 
-async function callDeepSeekAPI(
+/**
+ * 通用 AI API 调用函数 - 支持所有 OpenAI 兼容的 AI 提供商
+ * 支持: OpenAI、硅基流动、DeepSeek、Claude 等
+ */
+async function callAIAPI(
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
   systemPrompt: string,
 ): Promise<string> {
-  const response = await fetch('https://api.deepseek.com/chat/completions', {
+  const response = await fetch(`${AI_CONFIG.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.deepseekApiKey}`,
+      Authorization: `Bearer ${config.aiApiKey}`,
     },
     body: JSON.stringify({
-      model: AI_CONFIG.MODEL,
+      model: AI_CONFIG.model,
       messages: [{ role: 'system', content: systemPrompt }, ...messages],
-      temperature: AI_CONFIG.DEFAULT_TEMPERATURE,
-      max_tokens: AI_CONFIG.DEFAULT_MAX_TOKENS,
+      temperature: AI_CONFIG.temperature,
+      max_tokens: AI_CONFIG.maxTokens,
     }),
   });
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
     throw new Error(
-      `DeepSeek API request failed: ${response.status} ${response.statusText}${
+      `AI API request failed: ${response.status} ${response.statusText}${
         detail ? ` - ${detail.slice(0, 200)}` : ''
       }`,
     );
@@ -144,7 +163,9 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
     environment: config.nodeEnv,
-    apiKeyConfigured: Boolean(config.deepseekApiKey),
+    apiKeyConfigured: Boolean(config.aiApiKey),
+    aiProvider: AI_CONFIG.baseUrl,
+    aiModel: AI_CONFIG.model,
     timestamp: new Date().toISOString(),
   });
 });
@@ -154,13 +175,13 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     const startTime = Date.now();
     const { messages, systemPrompt } = req.body as Partial<ChatRequest>;
 
-    if (!config.deepseekApiKey) {
+    if (!config.aiApiKey) {
       return res.status(400).json({
         status: 'error',
         error: {
           code: 'MISSING_API_KEY',
           message:
-            'DEEPSEEK_API_KEY is not configured on the server. Please add it to apps/server/.env.local or apps/server/.env and restart the server.',
+            'AI_API_KEY is not configured on the server. Please add it to apps/server/.env.local or apps/server/.env and restart the server.',
         },
       });
     }
@@ -184,7 +205,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
         ? systemPrompt.trim()
         : 'You are a helpful AI assistant. Provide clear and concise answers.';
 
-    const response = await callDeepSeekAPI(formattedMessages, systemMessage);
+    const response = await callAIAPI(formattedMessages, systemMessage);
     const processingTime = Date.now() - startTime;
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -234,7 +255,8 @@ const server = app.listen(config.port, () => {
   console.log('[server] AI Agent backend started');
   console.log(`[server] Listening on http://localhost:${config.port}`);
   console.log(`[server] Environment: ${config.nodeEnv}`);
-  console.log(`[server] Model: ${AI_CONFIG.MODEL}`);
+  console.log(`[server] AI Provider: ${AI_CONFIG.baseUrl}`);
+  console.log(`[server] AI Model: ${AI_CONFIG.model}`);
   console.log(
     `[config] Loaded env files: ${loadedEnvFiles.length > 0 ? loadedEnvFiles.join(', ') : 'none'}`,
   );

@@ -3,6 +3,7 @@
  */
 
 export type { ChatMessage, AIStreamResponse, ChatRequest, ChatResponse } from './types/index';
+export type { AIProviderConfig, MessageValidationResult } from './utils/index';
 
 export {
   AI_CONFIG,

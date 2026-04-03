@@ -16,6 +16,19 @@ export default defineConfig({
     target: 'ES2020',
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      external: [],
+      output: {
+        // 禁用tree-shake 对 @ai-agent/shared 模块
+        manualChunks: {
+          shared: ['@ai-agent/shared'],
+        },
+      },
+    },
+  },
+  optimizeDeps: {
+    // 包含 @ai-agent/shared 以加快开发速度
+    include: ['@ai-agent/shared'],
   },
   define: {
     'process.env.REACT_APP_API_URL': JSON.stringify(
