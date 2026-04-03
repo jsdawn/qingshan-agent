@@ -6,6 +6,11 @@ import { getChatValidationErrors, normalizeMessagesForRequest } from './lib/chat
 
 import type { JSONValue } from 'ai';
 
+/**
+ * 聊天应用主界面。
+ *
+ * @returns 渲染完整的聊天交互界面。
+ */
 function App(): React.ReactElement {
   const apiUrl = getApiUrl();
 
@@ -37,6 +42,11 @@ function App(): React.ReactElement {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messageList, isLoading]);
 
+  /**
+   * 处理聊天表单提交。
+   *
+   * @param event 表单提交事件对象。
+   */
   const onSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
 

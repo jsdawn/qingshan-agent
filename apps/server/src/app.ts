@@ -13,8 +13,17 @@ import { normalizeRequestMessages } from './messages';
 import type { AppConfig } from './types';
 import type { Request, Response } from 'express';
 
+/**
+ * 默认系统提示词。
+ */
 const DEFAULT_SYSTEM_PROMPT = 'You are a helpful AI assistant. Provide clear and concise answers.';
 
+/**
+ * 创建并配置 Express 应用实例。
+ *
+ * @param config 应用启动配置。
+ * @returns 已完成中间件和路由注册的 Express 实例。
+ */
 export function createApp(config: AppConfig): express.Express {
   const app = express();
 

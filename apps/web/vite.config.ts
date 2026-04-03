@@ -1,6 +1,9 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
+/**
+ * 前端 Vite 构建配置。
+ */
 export default defineConfig({
   plugins: [react()],
   server: {
