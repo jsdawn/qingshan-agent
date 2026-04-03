@@ -1,8 +1,19 @@
 import { createApp } from './app/createApp';
 import { loadAppConfig } from './config/appConfig';
 
+/**
+ * 当前进程加载出的运行配置。
+ */
 const config = loadAppConfig();
+
+/**
+ * 根据配置创建的 Express 应用实例。
+ */
 const app = createApp(config);
+
+/**
+ * 当前 HTTP 服务实例。
+ */
 const server = app.listen(config.server.port, () => {
   console.log('[server] AI Agent backend started');
   console.log(`[server] Listening on http://localhost:${config.server.port}`);
@@ -16,18 +27,23 @@ const server = app.listen(config.server.port, () => {
   );
 });
 
-process.on('SIGTERM', () => {
-  console.log('[server] SIGTERM received, shutting down...');
+/**
+ * 统一处理进程退出信号并优雅关闭 HTTP 服务。
+ *
+ * @param signal 触发退出的进程信号。
+ */
+function shutdown(signal: 'SIGTERM' | 'SIGINT'): void {
+  console.log(`[server] ${signal} received, shutting down...`);
   server.close(() => {
     console.log('[server] Closed');
     process.exit(0);
   });
+}
+
+process.on('SIGTERM', () => {
+  shutdown('SIGTERM');
 });
 
 process.on('SIGINT', () => {
-  console.log('[server] SIGINT received, shutting down...');
-  server.close(() => {
-    console.log('[server] Closed');
-    process.exit(0);
-  });
+  shutdown('SIGINT');
 });

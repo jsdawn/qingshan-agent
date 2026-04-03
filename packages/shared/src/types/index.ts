@@ -1,7 +1,10 @@
 /**
- * 前后端共用的领域类型定义。
+ * 前后端共享的聊天领域类型定义。
  */
 
+/**
+ * 单条聊天消息。
+ */
 export interface ChatMessage {
   /** 消息唯一标识。 */
   id: string;
@@ -13,6 +16,9 @@ export interface ChatMessage {
   timestamp?: number;
 }
 
+/**
+ * 聊天接口请求体。
+ */
 export interface ChatRequest {
   /** 按时间顺序排列的对话消息列表。 */
   messages: ChatMessage[];

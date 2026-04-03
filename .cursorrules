@@ -39,6 +39,7 @@ ai-agent-monorepo/
 - 异步函数返回值必须标注为 `Promise<Type>`
 
 ### 注释规范
+- 代码规范注释
 - 所有注释必须使用中文
 - 函数注释使用 JSDoc 格式：
   ```typescript

@@ -5,6 +5,12 @@ import { createChatRouter } from '../features/chat/chatRoutes';
 
 import type { AppConfig } from '../types/app';
 
+/**
+ * 根据配置创建 Express 应用实例并注册中间件与路由。
+ *
+ * @param config 服务端完整配置。
+ * @returns 已完成基础初始化的 Express 应用实例。
+ */
 export function createApp(config: AppConfig): express.Express {
   const app = express();
 

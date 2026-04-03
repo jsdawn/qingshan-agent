@@ -2,12 +2,24 @@ import { useEffect, useRef, type ReactElement } from 'react';
 
 import type { UIChatMessage } from '../../utils/chat/chatMessages';
 
+/**
+ * 消息列表组件的属性定义。
+ */
 interface ChatMessageListProps {
+  /** 当前会话中的消息列表。 */
   messages: UIChatMessage[];
+  /** 是否正在等待 AI 返回结果。 */
   isLoading: boolean;
+  /** 需要展示给用户的错误信息。 */
   uiError: string;
 }
 
+/**
+ * 渲染聊天消息列表、空状态、加载态和错误提示。
+ *
+ * @param props 消息列表组件属性。
+ * @returns 聊天消息区域的界面结构。
+ */
 export function ChatMessageList({
   messages,
   isLoading,

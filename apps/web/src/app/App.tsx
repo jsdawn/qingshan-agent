@@ -9,6 +9,11 @@ import { ChatMessageList } from '../components/chat/ChatMessageList';
 import { getApiUrl } from '../config/api';
 import { getChatValidationErrors, normalizeMessagesForRequest } from '../utils/chat/chatMessages';
 
+/**
+ * 前端聊天应用的主界面组件。
+ *
+ * @returns 根页面组件。
+ */
 function App(): ReactElement {
   const apiUrl = getApiUrl();
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
@@ -32,6 +37,11 @@ function App(): ReactElement {
   const uiError = error?.message || messageValidationErrors[0] || '';
   const canSend = !isLoading && input.trim().length > 0 && messageValidationErrors.length === 0;
 
+  /**
+   * 提交聊天表单，并在本地校验通过后触发发送。
+   *
+   * @param event 表单提交事件。
+   */
   const onSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
 

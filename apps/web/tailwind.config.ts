@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * Tailwind CSS 扫描与主题配置。
+ * Tailwind CSS 扫描范围与主题配置。
  */
 const config: Config = {
   content: [

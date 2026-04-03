@@ -1,13 +1,27 @@
 import type { ChangeEventHandler, FormEventHandler, ReactElement } from 'react';
 
+/**
+ * 输入区组件的属性定义。
+ */
 interface ChatComposerProps {
+  /** 输入框当前内容。 */
   input: string;
+  /** 是否处于发送中的加载状态。 */
   isLoading: boolean;
+  /** 当前是否允许提交消息。 */
   canSend: boolean;
+  /** 输入内容变化时的处理函数。 */
   onChange: ChangeEventHandler<HTMLInputElement>;
+  /** 表单提交处理函数。 */
   onSubmit: FormEventHandler<HTMLFormElement>;
 }
 
+/**
+ * 渲染聊天输入框与发送按钮。
+ *
+ * @param props 输入区组件属性。
+ * @returns 聊天输入区组件。
+ */
 export function ChatComposer({
   input,
   isLoading,
