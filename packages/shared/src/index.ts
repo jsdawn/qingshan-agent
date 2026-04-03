@@ -7,9 +7,9 @@ export type { ChatMessage, AIStreamResponse, ChatRequest, ChatResponse } from '.
 export {
   AI_CONFIG,
   isChatMessage,
-  validateChatMessages,
   formatMessagesForAPI,
   generateMessageId,
   createMessage,
   getErrorMessage,
+  validateChatMessages,
 } from './utils/index';

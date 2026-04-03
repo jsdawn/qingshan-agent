@@ -1,7 +1,8 @@
-﻿import { useChat } from 'ai/react';
+﻿import { validateChatMessages } from '@ai-agent/shared';
+import { useChat } from 'ai/react';
 import React, { useEffect, useMemo, useRef } from 'react';
 
-import { validateChatMessages } from '../../../packages/shared/src/utils/index';
+
 
 import type { ChatMessage } from '@ai-agent/shared';
 import type { JSONValue } from 'ai';
