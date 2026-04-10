@@ -50,7 +50,7 @@ export function ChatMessageList({
             return (
               <article
                 key={message.id}
-                className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
+                className={`flex gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!isUser && (
                   <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">
@@ -61,8 +61,8 @@ export function ChatMessageList({
                 <div
                   className={`max-w-[82%] rounded-2xl px-3 py-2 md:max-w-[72%] ${
                     isUser
-                      ? 'rounded-br-md border border-blue-200 bg-blue-100 text-slate-900'
-                      : 'rounded-bl-md border border-slate-200 bg-slate-100 text-slate-900'
+                      ? 'rounded-tr-md border border-blue-200 bg-blue-100 text-slate-900'
+                      : 'rounded-tl-md border border-slate-200 bg-slate-100 text-slate-900'
                   }`}
                 >
                   <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -83,11 +83,11 @@ export function ChatMessageList({
           })}
 
           {isLoading && (
-            <article className="flex items-end gap-2">
+            <article className="flex gap-2">
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">
                 AI
               </div>
-              <div className="rounded-2xl rounded-bl-md border border-slate-200 bg-slate-100 px-3 py-2">
+              <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-slate-100 px-3 py-2">
                 <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   Assistant
                 </div>

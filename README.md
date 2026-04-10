@@ -31,8 +31,9 @@
 │  │  │  │  └─ appConfig.ts
 │  │  │  ├─ features/
 │  │  │  │  └─ chat/
-│  │  │  │     ├─ chatMessages.ts
 │  │  │  │     └─ chatRoutes.ts
+│  │  │  ├─ utils/
+│  │  │  │  └─ chatMessages.ts
 │  │  │  ├─ services/
 │  │  │  │  └─ ai/
 │  │  │  │     └─ callAIAPI.ts

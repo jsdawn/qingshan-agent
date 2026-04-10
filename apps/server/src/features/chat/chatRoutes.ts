@@ -7,21 +7,12 @@ import {
 import { Router, type Request, type Response } from 'express';
 
 import { callAIAPI } from '../../services/ai/callAIAPI';
-import { normalizeRequestMessages } from './chatMessages';
+import { normalizeRequestMessages } from '../../utils/normalizeRequestMessages';
 
 import type { AppConfig } from '../../types/app';
 
-/**
- * 默认系统提示词，在客户端未传入时用于约束模型行为。
- */
 const DEFAULT_SYSTEM_PROMPT = 'You are a helpful AI assistant. Provide clear and concise answers.';
 
-/**
- * 创建聊天接口路由。
- *
- * @param config 服务端运行配置。
- * @returns 挂载了聊天接口的 Express 路由实例。
- */
 export function createChatRouter(config: AppConfig): Router {
   const router = Router();
 

@@ -16,7 +16,7 @@ build/
 out/
 
 # IDE
-.vscode/
+# .vscode/
 .idea/
 *.swp
 *.swo

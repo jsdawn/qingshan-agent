@@ -1,11 +1,5 @@
 import { generateMessageId, type ChatMessage } from '@ai-agent/shared';
 
-/**
- * 将请求体中的未知消息列表整理为合法的聊天消息数组。
- *
- * @param messages 来自客户端请求的原始消息数据。
- * @returns 过滤并补齐字段后的消息数组。
- */
 export function normalizeRequestMessages(messages: unknown): ChatMessage[] {
   if (!Array.isArray(messages)) {
     return [];

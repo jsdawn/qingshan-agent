@@ -2,9 +2,9 @@ import dotenv from 'dotenv';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import type { AppConfig, NodeEnv, ServerConfig } from '../types/app';
 import type { AIProviderConfig } from '@ai-agent/shared';
 
-import type { AppConfig, NodeEnv, ServerConfig } from '../types/app';
 
 /**
  * 缺省的上游 AI 服务配置。

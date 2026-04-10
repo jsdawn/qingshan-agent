@@ -1,13 +1,13 @@
 import { useChat } from 'ai/react';
 import { useMemo, type FormEvent, type ReactElement } from 'react';
 
-import type { JSONValue } from 'ai';
-
 import { ChatComposer } from '../components/chat/ChatComposer';
 import { ChatHeader } from '../components/chat/ChatHeader';
 import { ChatMessageList } from '../components/chat/ChatMessageList';
 import { getApiUrl } from '../config/api';
 import { getChatValidationErrors, normalizeMessagesForRequest } from '../utils/chat/chatMessages';
+
+import type { JSONValue } from 'ai';
 
 /**
  * 前端聊天应用的主界面组件。
