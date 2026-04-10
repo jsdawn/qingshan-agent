@@ -1,9 +1,9 @@
-import { validateChatMessages, type ChatMessage } from '@ai-agent/shared';
+import * as shared from '@ai-agent/shared';
 
 /**
  * 前端界面层使用的聊天消息类型。
  */
-export type UIChatMessage = ChatMessage;
+export type UIChatMessage = shared.ChatMessage;
 
 /**
  * 前端收到的候选消息结构。
@@ -56,10 +56,14 @@ export function normalizeMessagesForRequest(messages: MessageCandidate[]): UICha
  * @returns 面向界面展示的错误信息数组。
  */
 export function getChatValidationErrors(messages: UIChatMessage[]): string[] {
-  if (messages.length === 0) {
+  const messagesToValidate = messages.filter(
+    (message) => message.role === 'user' || message.content.trim().length > 0,
+  );
+
+  if (messagesToValidate.length === 0) {
     return [];
   }
 
-  const result = validateChatMessages(messages);
+  const result = shared.validateChatMessages(messagesToValidate);
   return result.isValid ? [] : result.errors;
 }

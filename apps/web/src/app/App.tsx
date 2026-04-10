@@ -1,39 +1,32 @@
-import { useChat } from 'ai/react';
 import { useMemo, type FormEvent, type ReactElement } from 'react';
 
 import { ChatComposer } from '../components/chat/ChatComposer';
 import { ChatHeader } from '../components/chat/ChatHeader';
 import { ChatMessageList } from '../components/chat/ChatMessageList';
 import { getApiUrl } from '../config/api';
-import { getChatValidationErrors, normalizeMessagesForRequest } from '../utils/chat/chatMessages';
-
-import type { JSONValue } from 'ai';
+import { useChatStream } from '../hooks/useChatStream';
+import { getChatValidationErrors } from '../utils/chat/chatMessages';
 
 /**
- * 前端聊天应用的主界面组件。
+ * 前端聊天应用主界面。
  *
  * @returns 根页面组件。
  */
 function App(): ReactElement {
   const apiUrl = getApiUrl();
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    error,
+    activeAssistantMessageId,
+  } = useChatStream({
     api: `${apiUrl}/api/chat`,
-    streamProtocol: 'text',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    experimental_prepareRequestBody: ({ messages: requestMessages, requestBody }) =>
-      ({
-        ...(requestBody ?? {}),
-        messages: normalizeMessagesForRequest(requestMessages),
-      }) as unknown as JSONValue,
   });
 
-  const messageList = useMemo(() => normalizeMessagesForRequest(messages), [messages]);
-  const messageValidationErrors = useMemo(
-    () => getChatValidationErrors(messageList),
-    [messageList],
-  );
+  const messageValidationErrors = useMemo(() => getChatValidationErrors(messages), [messages]);
   const uiError = error?.message || messageValidationErrors[0] || '';
   const canSend = !isLoading && input.trim().length > 0 && messageValidationErrors.length === 0;
 
@@ -58,7 +51,12 @@ function App(): ReactElement {
         <ChatHeader />
 
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <ChatMessageList messages={messageList} isLoading={isLoading} uiError={uiError} />
+          <ChatMessageList
+            messages={messages}
+            isLoading={isLoading}
+            streamingMessageId={activeAssistantMessageId}
+            uiError={uiError}
+          />
           <ChatComposer
             input={input}
             isLoading={isLoading}

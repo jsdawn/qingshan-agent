@@ -32,7 +32,7 @@ ai-agent-monorepo/
 - **类/接口**: PascalCase（例：`ChatMessage`, `ApiResponse`）
 - **常量**: UPPER_SNAKE_CASE（例：`MAX_TOKENS`, `API_BASE_URL`）
 - **文件**:
-  - 普通文件: kebab-case（例：`chat-message.tsx`）
+  - 普通文件: camelCase（例：`chatMessage.ts`）
   - 入口文件: `index.ts`
   - 配置文件: 原名（例：`vite.config.ts`）
 

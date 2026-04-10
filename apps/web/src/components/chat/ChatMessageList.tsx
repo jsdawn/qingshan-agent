@@ -3,33 +3,39 @@ import { useEffect, useRef, type ReactElement } from 'react';
 import type { UIChatMessage } from '../../utils/chat/chatMessages';
 
 /**
- * 消息列表组件的属性定义。
+ * 聊天消息列表组件属性。
  */
 interface ChatMessageListProps {
-  /** 当前会话中的消息列表。 */
+  /** 当前消息列表。 */
   messages: UIChatMessage[];
-  /** 是否正在等待 AI 返回结果。 */
+  /** 是否仍处于生成或逐字渲染中。 */
   isLoading: boolean;
+  /** 当前正在流式写入的助手消息 ID。 */
+  streamingMessageId: string | null;
   /** 需要展示给用户的错误信息。 */
   uiError: string;
 }
 
 /**
- * 渲染聊天消息列表、空状态、加载态和错误提示。
+ * 渲染聊天消息列表、流式光标和错误提示。
  *
- * @param props 消息列表组件属性。
- * @returns 聊天消息区域的界面结构。
+ * @param props 组件属性。
+ * @returns 聊天消息区域。
  */
 export function ChatMessageList({
   messages,
   isLoading,
+  streamingMessageId,
   uiError,
 }: ChatMessageListProps): ReactElement {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages, isLoading]);
+    messagesEndRef.current?.scrollIntoView({
+      behavior: isLoading ? 'auto' : 'smooth',
+      block: 'end',
+    });
+  }, [messages, isLoading, streamingMessageId]);
 
   return (
     <section className="min-h-0 flex-1 overflow-y-auto p-4 md:p-5">
@@ -46,6 +52,7 @@ export function ChatMessageList({
         <div className="space-y-3">
           {messages.map((message) => {
             const isUser = message.role === 'user';
+            const isStreamingMessage = streamingMessageId === message.id;
 
             return (
               <article
@@ -70,6 +77,16 @@ export function ChatMessageList({
                   </div>
                   <div className="whitespace-pre-wrap break-words text-sm leading-6">
                     {message.content}
+                    {isStreamingMessage && message.content.length > 0 && (
+                      <span className="ml-0.5 inline-block h-4 w-px animate-pulse align-middle bg-slate-500" />
+                    )}
+                    {isStreamingMessage && message.content.length === 0 && (
+                      <span className="flex items-center gap-1 py-1">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-500" />
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-500 [animation-delay:120ms]" />
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-500 [animation-delay:240ms]" />
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -81,24 +98,6 @@ export function ChatMessageList({
               </article>
             );
           })}
-
-          {isLoading && (
-            <article className="flex gap-2">
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">
-                AI
-              </div>
-              <div className="rounded-2xl rounded-tl-md border border-slate-200 bg-slate-100 px-3 py-2">
-                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Assistant
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-500" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-500 [animation-delay:120ms]" />
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-500 [animation-delay:240ms]" />
-                </div>
-              </div>
-            </article>
-          )}
 
           <div ref={messagesEndRef} />
         </div>

@@ -1,26 +1,26 @@
 import type { ChangeEventHandler, FormEventHandler, ReactElement } from 'react';
 
 /**
- * 输入区组件的属性定义。
+ * 输入区组件属性。
  */
 interface ChatComposerProps {
-  /** 输入框当前内容。 */
+  /** 当前输入值。 */
   input: string;
-  /** 是否处于发送中的加载状态。 */
+  /** 是否正在生成回复。 */
   isLoading: boolean;
-  /** 当前是否允许提交消息。 */
+  /** 当前是否允许发送。 */
   canSend: boolean;
-  /** 输入内容变化时的处理函数。 */
+  /** 输入变更处理器。 */
   onChange: ChangeEventHandler<HTMLInputElement>;
-  /** 表单提交处理函数。 */
+  /** 表单提交处理器。 */
   onSubmit: FormEventHandler<HTMLFormElement>;
 }
 
 /**
  * 渲染聊天输入框与发送按钮。
  *
- * @param props 输入区组件属性。
- * @returns 聊天输入区组件。
+ * @param props 组件属性。
+ * @returns 输入区组件。
  */
 export function ChatComposer({
   input,
@@ -45,7 +45,7 @@ export function ChatComposer({
           disabled={!canSend}
           className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
-          {isLoading ? 'Sending...' : 'Send'}
+          {isLoading ? 'Generating...' : 'Send'}
         </button>
       </div>
     </form>
