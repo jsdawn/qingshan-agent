@@ -74,6 +74,10 @@ export async function readChatStream({
       for (const event of parser.feed(chunk)) {
         await handleStreamEvent(parseChatStreamEvent(event.data));
       }
+
+        if (hasReceivedTerminalEvent) {
+          break;
+        }
     }
 
     const tail = decoder.decode();
@@ -86,6 +90,8 @@ export async function readChatStream({
     for (const event of parser.flush()) {
       await handleStreamEvent(parseChatStreamEvent(event.data));
     }
+
+      // allow normal stream completion and parser.flush() to consume remaining data
 
     if (!signal?.aborted && !hasReceivedTerminalEvent) {
       throw new Error(

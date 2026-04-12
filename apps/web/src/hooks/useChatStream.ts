@@ -53,9 +53,19 @@ export function useChatStream({ api }: UseChatStreamOptions): UseChatStreamResul
   const isMountedRef = useRef(true);
 
   useEffect(() => {
+    // 确保在挂载时明确标记为已挂载（避免 StrictMode 下的双重挂载带来歧义）
+    isMountedRef.current = true;
+
     return () => {
+      // 在卸载时标记为未挂载
       isMountedRef.current = false;
-      abortControllerRef.current?.abort();
+      if (abortControllerRef.current) {
+        try {
+          abortControllerRef.current.abort();
+        } finally {
+          abortControllerRef.current = null;
+        }
+      }
 
       if (typingTimerRef.current !== null) {
         window.clearTimeout(typingTimerRef.current);
@@ -97,7 +107,8 @@ export function useChatStream({ api }: UseChatStreamOptions): UseChatStreamResul
    */
   const syncAssistantMessage = (
     currentAssistantMessageId: string,
-    nextAssistantMessage: Pick<shared.ChatMessage, 'id'> & Pick<Partial<shared.ChatMessage>, 'timestamp'>,
+    nextAssistantMessage: Pick<shared.ChatMessage, 'id'> &
+      Pick<Partial<shared.ChatMessage>, 'timestamp'>,
   ): void => {
     activeAssistantIdRef.current = nextAssistantMessage.id;
     setActiveAssistantMessageId(nextAssistantMessage.id);
@@ -265,7 +276,17 @@ export function useChatStream({ api }: UseChatStreamOptions): UseChatStreamResul
           request,
           signal: abortController.signal,
           onEvent: async (streamEvent) => {
-            if (!isMountedRef.current || abortControllerRef.current !== abortController) {
+            console.log('Received stream event:', streamEvent, {
+              mounted: isMountedRef.current,
+              isActiveAbortController: abortControllerRef.current === abortController,
+              signalAborted: abortController.signal.aborted,
+            });
+
+            // Only handle events for the currently active request and if the
+            // request has not been aborted. Do not rely on `isMountedRef` here
+            // because StrictMode / development remounts can cause transient
+            // unmounts that would otherwise drop valid events.
+            if (abortControllerRef.current !== abortController || abortController.signal.aborted) {
               return;
             }
 
@@ -286,7 +307,10 @@ export function useChatStream({ api }: UseChatStreamOptions): UseChatStreamResul
                 return;
               case 'done':
                 completedMessageRef.current = streamEvent.message;
-                if (activeAssistantIdRef.current && activeAssistantIdRef.current !== streamEvent.message.id) {
+                if (
+                  activeAssistantIdRef.current &&
+                  activeAssistantIdRef.current !== streamEvent.message.id
+                ) {
                   syncAssistantMessage(activeAssistantIdRef.current, {
                     id: streamEvent.message.id,
                     timestamp: streamEvent.message.timestamp,
@@ -294,7 +318,10 @@ export function useChatStream({ api }: UseChatStreamOptions): UseChatStreamResul
                 }
 
                 if (pendingDeltaRef.current.length === 0) {
-                  finalizeStream(activeAssistantIdRef.current ?? assistantMessage.id, streamEvent.message);
+                  finalizeStream(
+                    activeAssistantIdRef.current ?? assistantMessage.id,
+                    streamEvent.message,
+                  );
                 } else {
                   scheduleTyping();
                 }

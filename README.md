@@ -264,6 +264,7 @@ pnpm typecheck
 
 ## 文档
 
+- AI开发规范 [./.cursorrules](./.cursorrules)
 - 提供商配置说明见 [docs/AI_PROVIDER_CONFIG.md](./docs/AI_PROVIDER_CONFIG.md)
 - 开发说明见 [DEVELOPMENT.md](./DEVELOPMENT.md)
 - 开发文档入口见 [docs/developer/README.md](./docs/developer/README.md)
