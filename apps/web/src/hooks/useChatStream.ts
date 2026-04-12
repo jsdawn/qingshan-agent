@@ -50,7 +50,21 @@ export function useChatStream({ api }: UseChatStreamOptions): UseChatStreamResul
   const pendingDeltaRef = useRef('');
   const completedMessageRef = useRef<shared.ChatMessage | null>(null);
   const typingTimerRef = useRef<number | null>(null);
-  const isMountedRef = useRef(true);
+  const isMountedRef = useRef(false);
+
+  const resetStreamState = (): void => {
+    if (typingTimerRef.current !== null) {
+      window.clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+
+    pendingDeltaRef.current = '';
+    completedMessageRef.current = null;
+    abortControllerRef.current = null;
+    activeAssistantIdRef.current = null;
+    setIsLoading(false);
+    setActiveAssistantMessageId(null);
+  };
 
   useEffect(() => {
     // 确保在挂载时明确标记为已挂载（避免 StrictMode 下的双重挂载带来歧义）
@@ -137,18 +151,7 @@ export function useChatStream({ api }: UseChatStreamOptions): UseChatStreamResul
     if (!isMountedRef.current) {
       return;
     }
-
-    if (typingTimerRef.current !== null) {
-      window.clearTimeout(typingTimerRef.current);
-      typingTimerRef.current = null;
-    }
-
-    pendingDeltaRef.current = '';
-    completedMessageRef.current = null;
-    abortControllerRef.current = null;
-    activeAssistantIdRef.current = null;
-    setIsLoading(false);
-    setActiveAssistantMessageId(null);
+    resetStreamState();
 
     if (finalMessage) {
       setMessages((currentMessages) =>
@@ -178,18 +181,7 @@ export function useChatStream({ api }: UseChatStreamOptions): UseChatStreamResul
     if (!isMountedRef.current) {
       return;
     }
-
-    if (typingTimerRef.current !== null) {
-      window.clearTimeout(typingTimerRef.current);
-      typingTimerRef.current = null;
-    }
-
-    pendingDeltaRef.current = '';
-    completedMessageRef.current = null;
-    abortControllerRef.current = null;
-    activeAssistantIdRef.current = null;
-    setIsLoading(false);
-    setActiveAssistantMessageId(null);
+    resetStreamState();
     setError(new Error(shared.getErrorMessage(streamError)));
     setMessages((currentMessages) =>
       currentMessages.filter(
@@ -276,12 +268,6 @@ export function useChatStream({ api }: UseChatStreamOptions): UseChatStreamResul
           request,
           signal: abortController.signal,
           onEvent: async (streamEvent) => {
-            console.log('Received stream event:', streamEvent, {
-              mounted: isMountedRef.current,
-              isActiveAbortController: abortControllerRef.current === abortController,
-              signalAborted: abortController.signal.aborted,
-            });
-
             // Only handle events for the currently active request and if the
             // request has not been aborted. Do not rely on `isMountedRef` here
             // because StrictMode / development remounts can cause transient

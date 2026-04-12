@@ -15,12 +15,12 @@ const app = createApp(config);
  * 当前 HTTP 服务实例。
  */
 const server = app.listen(config.server.port, () => {
-  console.log('[server] AI Agent backend started');
-  console.log(`[server] Listening on http://localhost:${config.server.port}`);
-  console.log(`[server] Environment: ${config.server.nodeEnv}`);
-  console.log(`[server] AI Provider: ${config.ai.baseUrl}`);
-  console.log(`[server] AI Model: ${config.ai.model}`);
-  console.log(
+  console.info('[server] AI Agent backend started');
+  console.info(`[server] Listening on http://localhost:${config.server.port}`);
+  console.info(`[server] Environment: ${config.server.nodeEnv}`);
+  console.info(`[server] AI Provider: ${config.ai.baseUrl}`);
+  console.info(`[server] AI Model: ${config.ai.model}`);
+  console.info(
     `[config] Loaded env files: ${
       config.loadedEnvFiles.length > 0 ? config.loadedEnvFiles.join(', ') : 'none'
     }`,
@@ -33,9 +33,18 @@ const server = app.listen(config.server.port, () => {
  * @param signal 触发退出的进程信号。
  */
 function shutdown(signal: 'SIGTERM' | 'SIGINT'): void {
-  console.log(`[server] ${signal} received, shutting down...`);
+  console.info(`[server] ${signal} received, shutting down...`);
+
+  // Set a timeout to force exit if the server doesn't close in a timely manner.
+  const forcedExitTimer = setTimeout(() => {
+     
+    console.error('[server] Shutdown timed out, forcing exit.');
+    process.exit(1);
+  }, 5000);
+
   server.close(() => {
-    console.log('[server] Closed');
+    clearTimeout(forcedExitTimer);
+    console.info('[server] Closed');
     process.exit(0);
   });
 }

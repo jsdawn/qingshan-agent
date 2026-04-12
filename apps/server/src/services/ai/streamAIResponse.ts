@@ -77,7 +77,13 @@ export async function* streamAIResponse({
   }
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => '');
+    let detail = '';
+    try {
+      detail = await response.text();
+    } catch {
+      detail = '';
+    }
+
     throw new Error(
       `AI API request failed: ${response.status} ${response.statusText}${
         detail ? ` - ${detail.slice(0, 200)}` : ''
